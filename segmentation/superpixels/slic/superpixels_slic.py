@@ -21,7 +21,7 @@ image = io.imread('test_media/imgs/test_img_0.jpg')
 # image_lab = color.rgb2lab(image)
 # segments = segmentation.slic(image_lab, slic_zero=True)
 # # Unfortunately, it seems RGB colour space (originally used) is better overall as it segments the ball well and the squares good enough
-# segments = segmentation.slic(image, slic_zero=True)
+segments = segmentation.slic(image, slic_zero=True)
 
 regions = measure.regionprops(segments)
 colorfulness = np.zeros(image.shape[:2])
