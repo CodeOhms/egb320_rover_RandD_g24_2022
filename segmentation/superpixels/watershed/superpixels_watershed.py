@@ -9,7 +9,6 @@ import os
 script_dir = os.path.dirname(getsourcefile(lambda:0))
 os.chdir(script_dir)
 os.chdir('../../../')
-print(os.getcwd())
 
 im = imread('test_media/imgs/test_img_0.jpg')
 print(im.shape)
