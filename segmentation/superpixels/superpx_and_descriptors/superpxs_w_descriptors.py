@@ -30,8 +30,13 @@ if __name__ == '__main__':
     descr_imgs.append(gen_discriptor_img(superpx_img, img, avg_rgb_descriptor))
 
     # Jaccard Similarity:
+        # NOTE: Currently doesn't work too well due to padding pixels placed around the irregularly shaped region.
+        # It's also VERY slow so not worth trying to implement it correctly.
     # sample_comp_img = imread(imgs_dir+'sample_jacc_comp.png')
     # descr_imgs.append(gen_discriptor_img(superpx_img, img, jaccard_descriptor, [sample_comp_img]))
+
+    # Dominant Colour:
+    descr_imgs.append(gen_discriptor_img(superpx_img, img, dominant_colour_descriptor))
 
     descr_imgs_num = len(descr_imgs)
     if descr_imgs_num < 1:

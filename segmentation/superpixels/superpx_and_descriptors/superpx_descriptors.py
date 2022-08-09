@@ -7,34 +7,18 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 
 ####
-#### Generate descriptor image
+#### Generate descriptor images and regions
+def get_region1d(img, superpx_img_indicies):
+    return img[superpx_img_indicies]
+
+def get_region2d(img, superpx_img_indicies):
+    mask = np.zeros(img.shape[:2], dtype = "uint8")
+    mask[superpx_img_indicies] = 255
+    return cv.bitwise_and(img, img, mask=mask)
+
 def gen_discriptor_img(superpx_img, img, descr_func, descr_func_args=[None]):
     descriptors = np.zeros((superpx_img.max()+1,3))
     im_descriptors = np.zeros_like(img)
-
-    # for (i, segVal) in enumerate(np.unique(superpx_img)):
-    #     mask = np.zeros(img.shape[:2], dtype = "uint8")
-    #     mask[superpx_img == segVal] = 255
-    #     print(i, segVal)
-    #     plt.figure()
-    #     plt.imshow(mask)
-    #     plt.figure()
-    #     plt.imshow(img[superpx_img==i])
-    #     plt.show()
-
-    # for i in range(superpx_img.min(), superpx_img.max()+1):
-    #     args = [img[superpx_img==i]] + descr_func_args
-    #     plt.imshow(img[superpx_img==i])
-    #     plt.show()
-    #     descriptors[i] = descr_func(args)
-    #     im_descriptors[superpx_img==i] = descriptors[i]
-
-    # for i in range(superpx_img.min(), superpx_img.max()+1):
-    #     mask = np.zeros(img.shape[:2], dtype = "uint8")
-    #     mask[superpx_img==i] = 255
-    #     args = [cv.bitwise_and(img, img, mask=mask)] + descr_func_args
-    #     descriptors[i] = descr_func(args)
-    #     im_descriptors[superpx_img==i] = descriptors[i]
 
     for i in range(superpx_img.min(), superpx_img.max()+1):
         args = [img, superpx_img==i] + descr_func_args
@@ -50,7 +34,7 @@ def avg_rgb_descriptor(args):
     superpx_img_indicies = args[1]
 
     # Region as a column of rgb pairs:
-    region = img[superpx_img_indicies]
+    region = get_region1d(img, superpx_img_indicies)
     return [region[:,0].mean(), region[:,1].mean(), region[:,2].mean()]
 
 ####
@@ -60,9 +44,10 @@ def jaccard_descriptor(args):
     superpx_img_indicies = args[1]
     comp_img = args[2]
 
-    mask = np.zeros(img.shape[:2], dtype = "uint8")
-    mask[superpx_img_indicies] = 255
-    region = cv.bitwise_and(img, img, mask=mask)
+    region = get_region(img, superpx_img_indicies)
+    # mask = np.zeros(img.shape[:2], dtype = "uint8")
+    # mask[superpx_img_indicies] = 255
+    # region = cv.bitwise_and(img, img, mask=mask)
     # Resize comp_img to region size if needed:
     if comp_img.shape != region.shape:
         comp_img = resize(comp_img.ravel(), region.shape)
@@ -70,3 +55,32 @@ def jaccard_descriptor(args):
     return jaccard_score(comp_img.ravel(), region.ravel(), average="micro")
 
 ####
+#### Dominant Colour descriptor
+def dominant_colour_descriptor(args):
+    img = args[0]
+    superpx_img_indicies = args[1]
+
+    region = np.float32(get_region1d(img, superpx_img_indicies))
+    clusters_num = 3
+    criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+    flags = cv.KMEANS_RANDOM_CENTERS
+    compactness, labels, centres = cv.kmeans(region, clusters_num, None, criteria, 10, flags)
+    
+    # Dominant colour counting method from here: https://medium.com/buzzrobot/dominant-colors-in-an-image-using-k-means-clustering-3c7af4622036
+    #labels form 0 to no. of clusters
+    numLabels = np.arange(0, clusters_num+1)
+    
+    #create frequency count tables    
+    (hist, _) = np.histogram(labels, bins=numLabels)
+    hist = hist.astype("float")
+    hist /= hist.sum()
+    
+    #appending frequencies to cluster centers
+    colours = centres
+    
+    #descending order sorting as per frequency count
+    colours = colours[(-hist).argsort()]
+    hist = hist[(-hist).argsort()] 
+
+    # Return the most dominant colour:
+    return colours[0]
