@@ -84,3 +84,9 @@ def dominant_colour_descriptor(args):
 
     # Return the most dominant colour:
     return colours[0]
+
+####
+#### Mean and std. deviation of Hue and Saturation descriptor
+
+
+####

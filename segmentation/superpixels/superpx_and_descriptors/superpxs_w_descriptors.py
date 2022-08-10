@@ -3,28 +3,22 @@ import os
 import math
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 from skimage.io import imread
 from skimage.segmentation import mark_boundaries
 
 from superpx_transforms import *
 from superpx_descriptors import *
 
-if __name__ == '__main__':
-    # Set the working directory to the root folder of the R&D git repo:
-    script_dir = os.path.dirname(getsourcefile(lambda:0))
-    os.chdir(script_dir)
-    os.chdir('../../../')
-    imgs_dir = 'test_media/imgs/'
-
-    img = imread(imgs_dir+'test_img_0.jpg')
-
+def create_superpx_img(img):
     # Apply superpixel algos:
     superpx_img = None
 
         # Watershed:
     ws_markers, rgb_grad_im = watershed_get_markers(img)
-    superpx_img = superpx_watershed_trans(rgb_grad_im, ws_markers)
+    return superpx_watershed_trans(rgb_grad_im, ws_markers)
 
+def apply_superpx_descriptors(superpx_img, img):
     descr_imgs = [ ]
     # Avg. RGB:
     descr_imgs.append(gen_discriptor_img(superpx_img, img, avg_rgb_descriptor))
@@ -38,19 +32,85 @@ if __name__ == '__main__':
     # Dominant Colour:
     descr_imgs.append(gen_discriptor_img(superpx_img, img, dominant_colour_descriptor))
 
-    descr_imgs_num = len(descr_imgs)
+    return descr_imgs
+
+def disp_descr_imgs(superpx_img, fig_and_ax, descr_imgs, descr_imgs_num):
     if descr_imgs_num < 1:
-        plt.imshow(mark_boundaries(descr_imgs[0], superpx_img)) 
+        descr_imgs_fig = fig_and_ax[0]
+        descr_imgs_fig.set_data(mark_boundaries(descr_imgs[0], superpx_img))
     else:
         figs_num_hor = math.ceil(descr_imgs_num/2)
         if figs_num_hor == 1:
             figs_num_hor = 2
-        figure_descr_imgs, ax = plt.subplots(2, figs_num_hor, figsize=(10, 10), sharex=True, sharey=True)
         for i_fig, fig in enumerate(descr_imgs):
-            ax[i_fig%figs_num_hor, math.floor(i_fig/figs_num_hor)].imshow(mark_boundaries(descr_imgs[i_fig], superpx_img))
+            fig_and_ax[i_fig].set_data(mark_boundaries(descr_imgs[i_fig], superpx_img))
 
         for a in ax.ravel():
             a.set_axis_off()
 
+def grab_frame(capture):
+    ret, frame = capture.read()
+    return cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+
+def close(event):
+    if event.key == 'c':
+        plt.close(event.canvas.figure)
+
+use_video = False
+
+if __name__ == '__main__':
+    # Set the working directory to the root folder of the R&D git repo:
+    script_dir = os.path.dirname(getsourcefile(lambda:0))
+    os.chdir(script_dir)
+    os.chdir('../../../')
+    imgs_dir = 'test_media/imgs/'
+
+    capture = None
+    img = None
+    if use_video:
+        capture = cv.VideoCapture(0)
+        plt.ion()
+    img = imread(imgs_dir+'test_img_1.jpg')
+
     plt.tight_layout()
+
+    descr_imgs_num = 2
+
+    # Display descriptor images:
+        # Setup figures:
+    descr_imgs_fig = None
+    if descr_imgs_num < 1:
+        descr_imgs_fig = plt.figure()
+    else:
+        figs_num_hor = math.ceil(descr_imgs_num/2)
+        if figs_num_hor == 1:
+            figs_num_hor = 2
+        _, ax = plt.subplots(2, figs_num_hor, sharex=True, sharey=True)
+        descr_imgs_fig = [ ]
+        for i_fig in range(descr_imgs_num):
+            descr_imgs_fig.append(ax[i_fig%figs_num_hor, math.floor(i_fig/figs_num_hor)].imshow(np.zeros(img.shape, dtype=np.uint8)))
+
+    while(True):
+        if use_video:
+            img = grab_frame(capture)
+
+        superpx_img = create_superpx_img(img)
+
+        descr_imgs = apply_superpx_descriptors(superpx_img, img)
+
+        disp_descr_imgs(superpx_img, descr_imgs_fig, descr_imgs, len(descr_imgs))
+
+        if not use_video:
+            break
+
+        plt.pause(0.2)
+
     plt.show()
+
+    if use_video:
+        plt.ioff()
+        plt.show()
+        capture.release()
+        
+    # Destroy all the windows
+    cv.destroyAllWindows()
