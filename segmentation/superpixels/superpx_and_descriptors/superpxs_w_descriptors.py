@@ -4,7 +4,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from skimage.io import imread
+from skimage import io as skio
 from skimage.segmentation import mark_boundaries
 
 from superpx_transforms import *
@@ -12,8 +12,6 @@ from superpx_descriptors import *
 
 def create_superpx_img(img):
     # Apply superpixel algos:
-    superpx_img = None
-
         # Watershed:
     ws_markers, rgb_grad_im = watershed_get_markers(img)
     return superpx_watershed_trans(rgb_grad_im, ws_markers)
@@ -26,7 +24,7 @@ def apply_superpx_descriptors(superpx_img, img):
     # Jaccard Similarity:
         # NOTE: Currently doesn't work too well due to padding pixels placed around the irregularly shaped region.
         # It's also VERY slow so not worth trying to implement it correctly.
-    # sample_comp_img = imread(imgs_dir+'sample_jacc_comp.png')
+    # sample_comp_img = skio.imread(imgs_dir+'sample_jacc_comp.png')
     # descr_imgs.append(gen_discriptor_img(superpx_img, img, jaccard_descriptor, [sample_comp_img]))
 
     # Dominant Colour:
@@ -56,7 +54,7 @@ def close(event):
     if event.key == 'c':
         plt.close(event.canvas.figure)
 
-use_video = False
+use_video = True
 
 if __name__ == '__main__':
     # Set the working directory to the root folder of the R&D git repo:
@@ -69,8 +67,10 @@ if __name__ == '__main__':
     img = None
     if use_video:
         capture = cv.VideoCapture(0)
+        img = grab_frame(capture)
         plt.ion()
-    img = imread(imgs_dir+'test_img_1.jpg')
+    else:
+        img = skio.imread(imgs_dir+'test_img_1.jpg')
 
     plt.tight_layout()
 
@@ -88,14 +88,13 @@ if __name__ == '__main__':
         _, ax = plt.subplots(2, figs_num_hor, sharex=True, sharey=True)
         descr_imgs_fig = [ ]
         for i_fig in range(descr_imgs_num):
-            descr_imgs_fig.append(ax[i_fig%figs_num_hor, math.floor(i_fig/figs_num_hor)].imshow(np.zeros(img.shape, dtype=np.uint8)))
+            descr_imgs_fig.append(ax[i_fig%figs_num_hor, math.floor(i_fig/figs_num_hor)].imshow(img))
 
     while(True):
         if use_video:
             img = grab_frame(capture)
 
         superpx_img = create_superpx_img(img)
-
         descr_imgs = apply_superpx_descriptors(superpx_img, img)
 
         disp_descr_imgs(superpx_img, descr_imgs_fig, descr_imgs, len(descr_imgs))
