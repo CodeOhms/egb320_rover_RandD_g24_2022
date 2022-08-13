@@ -16,9 +16,9 @@ def get_region2d(img, superpx_img_indicies):
     mask[superpx_img_indicies] = 255
     return cv.bitwise_and(img, img, mask=mask)
 
-def gen_discriptor_img(superpx_img, img, descr_func, descr_func_args=[None]):
-    descriptors = np.zeros((superpx_img.max()+1,3))
-    im_descriptors = np.zeros_like(img)
+def gen_discriptor_img(superpx_img, img, descr_func, descr_func_args=[None], descr_dims=3):
+    descriptors = np.zeros((superpx_img.max()+1, descr_dims))
+    im_descriptors = np.zeros((img.shape[0], img.shape[1], descr_dims), dtype=img.dtype)
 
     for i in range(superpx_img.min(), superpx_img.max()+1):
         args = [img, superpx_img==i] + descr_func_args
@@ -87,6 +87,26 @@ def dominant_colour_descriptor(args):
 
 ####
 #### Mean and std. deviation of Hue and Saturation descriptor
+def MAD(data):
+    """
+    Mean Absolute Deviation.
+    """
 
+    return np.mean(np.absolute(data - np.mean(data)))
+
+def hs_stats_descriptor(args):
+    img = args[0]
+    superpx_img_indicies = args[1]
+
+    img_hsv = cv.cvtColor(img, cv.COLOR_RGB2HSV)
+
+    # Region as a column of HSV pairs:
+    region = get_region1d(img_hsv, superpx_img_indicies)
+    hue_avg = region[:,0].mean()
+    sat_avg = region[:,1].mean()
+    hue_mad = MAD(region[:,0])
+    sat_mad = MAD(region[:,1])
+
+    return (hue_avg, sat_avg, hue_mad, sat_mad)
 
 ####

@@ -13,8 +13,11 @@ from superpx_descriptors import *
 def create_superpx_img(img):
     # Apply superpixel algos:
         # Watershed:
-    ws_markers, rgb_grad_im = watershed_get_markers(img)
-    return superpx_watershed_trans(rgb_grad_im, ws_markers)
+    # ws_markers, rgb_grad_im = watershed_get_markers(img)
+    # return superpx_watershed_trans(rgb_grad_im, ws_markers)
+
+        # SLIC:
+    return superpx_slic_trans(img)
 
 def apply_superpx_descriptors(superpx_img, img):
     descr_imgs = [ ]
@@ -30,6 +33,11 @@ def apply_superpx_descriptors(superpx_img, img):
     # Dominant Colour:
     descr_imgs.append(gen_discriptor_img(superpx_img, img, dominant_colour_descriptor))
 
+    # Hue and Saturation average and MAD (mean absolute deviation)
+    hue_mean_sat_mean_hue_MAD_sat_MAD = gen_discriptor_img(superpx_img, img, hs_stats_descriptor, descr_dims=4)
+    descr_imgs.append(hue_mean_sat_mean_hue_MAD_sat_MAD[:,:,:3])
+    asdf = np.delete(hue_mean_sat_mean_hue_MAD_sat_MAD, 2, 2)
+    descr_imgs.append(asdf)
     return descr_imgs
 
 def disp_descr_imgs(superpx_img, fig_and_ax, descr_imgs, descr_imgs_num):
@@ -50,11 +58,12 @@ def grab_frame(capture):
     ret, frame = capture.read()
     return cv.cvtColor(frame, cv.COLOR_BGR2RGB)
 
+use_video = True
 def close(event):
+    global use_video
     if event.key == 'c':
         plt.close(event.canvas.figure)
-
-use_video = True
+        use_video = False
 
 if __name__ == '__main__':
     # Set the working directory to the root folder of the R&D git repo:
@@ -70,11 +79,11 @@ if __name__ == '__main__':
         img = grab_frame(capture)
         plt.ion()
     else:
-        img = skio.imread(imgs_dir+'test_img_1.jpg')
+        img = skio.imread(imgs_dir+'test_img_0.jpg')
 
     plt.tight_layout()
 
-    descr_imgs_num = 2
+    descr_imgs_num = 4
 
     # Display descriptor images:
         # Setup figures:
@@ -99,10 +108,10 @@ if __name__ == '__main__':
 
         disp_descr_imgs(superpx_img, descr_imgs_fig, descr_imgs, len(descr_imgs))
 
+        plt.pause(0.005)
+
         if not use_video:
             break
-
-        plt.pause(0.2)
 
     plt.show()
 
