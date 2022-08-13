@@ -1,6 +1,6 @@
 import numpy as np
 # from scipy.spatial import distance
-from sklearn.metrics import jaccard_score
+# from sklearn.metrics import jaccard_score
 from skimage.transform import resize
 from skimage.util import img_as_ubyte
 import cv2 as cv
