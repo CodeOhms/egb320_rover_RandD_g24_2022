@@ -89,7 +89,7 @@ if __name__ == "__main__":
     # _, obstacle_subplts_ax = plt.subplots(1, 2, sharex=True, sharey=True)
 
     # Display density data:
-    density_plot_display(gb_data_densities, np.linspace(0,1,180), gb_subplts_axs)
+    density_plot_display(gb_data_densities, np.linspace(0,180,181), gb_subplts_axs)
     # density_plot_display(rock_data_density, figure=rock_subplts_ax)
     # density_plot_display(obstacle_data_density, figure=obstacle_subplts_ax)
     
