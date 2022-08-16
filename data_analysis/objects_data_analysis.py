@@ -54,9 +54,11 @@ def density_plot_generate(data_set, smoothing=.5):
     
     return densities
 
-def density_plot_display(densities, domain, axs):
-    for ax, density in zip(axs, densities):
+def density_plot_display(densities, domain, axs, titles):
+    for ax, density, title in zip(axs, densities, titles):
         ax.plot(domain, density(domain))
+        ax.set_xlabel(title)
+        ax.set_ylabel('Density')
 
 if __name__ == "__main__":
     # Read all the sample images:
@@ -81,7 +83,8 @@ if __name__ == "__main__":
     
     # Prepare figures and plots:
     gb_figure, gb_subplts_axs = plt.subplots(4, 1)
-
+    gb_figure.tight_layout()
+    gb_figure.suptitle('Orange Golf Ball Samples HSV Analysis')
 
     # rock_figure = plt.figure()
     # _, rock_subplts_ax = plt.subplots(1, 2, sharex=True, sharey=True)
@@ -90,10 +93,11 @@ if __name__ == "__main__":
     # _, obstacle_subplts_ax = plt.subplots(1, 2, sharex=True, sharey=True)
 
     # Display density data:
+    dens_plt_titles = ('Hue', 'Saturation', 'Hue Mean Absolute Deviation (MAD)', 'Sat MAD')
         # Hue and hue MAD:
-    density_plot_display(gb_data_densities[0::2], np.linspace(0,360,361), gb_subplts_axs[0::2])
+    density_plot_display(gb_data_densities[0::2], np.linspace(0,360,361), gb_subplts_axs[0::2], dens_plt_titles[0::2])
         # Sat and sat MAD:
-    density_plot_display(gb_data_densities[1::2], np.linspace(0,1,100), gb_subplts_axs[1::2])
+    density_plot_display(gb_data_densities[1::2], np.linspace(0,1,100), gb_subplts_axs[1::2], dens_plt_titles[1::2])
     # density_plot_display(rock_data_density, figure=rock_subplts_ax)
     # density_plot_display(obstacle_data_density, figure=obstacle_subplts_ax)
     
