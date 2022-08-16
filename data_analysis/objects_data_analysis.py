@@ -38,8 +38,8 @@ def prepare_img_data(image_list):
         hue_packed = np.append(hue_packed, h)
         sat_packed = np.append(sat_packed, s)
 
-        np.append(hue_MAD_packed, MAD(h))
-        np.append(sat_MAD_packed, MAD(s))
+        hue_MAD_packed = np.append(hue_MAD_packed, MAD(h))
+        sat_MAD_packed = np.append(sat_MAD_packed, MAD(s))
 
     return (hue_packed, sat_packed, hue_MAD_packed, sat_MAD_packed)
 
@@ -53,11 +53,9 @@ def density_plot_generate(data_set, smoothing=.5):
     
     return densities
 
-def density_plot_display(density_data, domain=np.linspace(0,20,200), figure=plt.figure()):
-    (hs_density, h_MAD_s_MAD_density) = density_data
-    figure[0].set_data(domain, hs_density(domain))
-    figure[1].set_data(domain, h_MAD_s_MAD_density(domain))
-
+def density_plot_display(densities, domain, axs):
+    for ax, density in zip(axs, densities):
+        ax.plot(domain, density(domain))
 
 if __name__ == "__main__":
     # Read all the sample images:
@@ -81,8 +79,8 @@ if __name__ == "__main__":
     # obstacle_data_density = density_plot_generate(obstacle_img_data)
     
     # Prepare figures and plots:
-    gb_figure = plt.figure()
-    _, gb_subplts_ax = plt.subplots(1, 2, sharex=True, sharey=True)
+    gb_figure, gb_subplts_axs = plt.subplots(1, 2, sharex=True, sharey=True)
+
 
     # rock_figure = plt.figure()
     # _, rock_subplts_ax = plt.subplots(1, 2, sharex=True, sharey=True)
@@ -91,7 +89,8 @@ if __name__ == "__main__":
     # _, obstacle_subplts_ax = plt.subplots(1, 2, sharex=True, sharey=True)
 
     # Display density data:
-    density_plot_display(gb_data_density, figure=gb_subplts_ax)
+    density_plot_display(gb_data_densities, np.linspace(0,1,180), gb_subplts_axs)
     # density_plot_display(rock_data_density, figure=rock_subplts_ax)
     # density_plot_display(obstacle_data_density, figure=obstacle_subplts_ax)
     
+    plt.show()
