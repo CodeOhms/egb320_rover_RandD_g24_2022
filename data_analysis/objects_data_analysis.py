@@ -2,13 +2,19 @@ import glob
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
-import scipy as sp
+# import scipy as sp
+from scipy import stats
 
 def open_images(relative_dir, file_pattern='*.png'):
-    files = glob.glob(relative_dir+file_pattern)
+    files = glob.glob(relative_dir+'/'+file_pattern)
     files.sort()
 
-    return files
+    images = [ ]
+
+    for f in files:
+        images.append(cv.imread(f))
+
+    return images
 
 def MAD(data):
     """
@@ -37,12 +43,15 @@ def prepare_img_data(image_list):
 
     return (hue_packed, sat_packed, hue_MAD_packed, sat_MAD_packed)
 
-def density_plot_generate(data, smoothing=.5):
-    density = sp.stats.gaussian_kde(data)
-    density.covariance_factor = lambda : smoothing
-    density._compute_covariance()
+def density_plot_generate(data_set, smoothing=.5):
+    densities = [ ]
+    for data in data_set:
+        density = stats.gaussian_kde(data)
+        density.covariance_factor = lambda : smoothing
+        density._compute_covariance()
+        densities.append(density)
     
-    return density
+    return densities
 
 def density_plot_display(density_data, domain=np.linspace(0,20,200), figure=plt.figure()):
     (hs_density, h_MAD_s_MAD_density) = density_data
@@ -52,37 +61,37 @@ def density_plot_display(density_data, domain=np.linspace(0,20,200), figure=plt.
 
 if __name__ == "__main__":
     # Read all the sample images:
-    gb_images = open_images('test_media/imgs/objects_data_analysis/golf_ball_samples_imgs_da', '.png')
-    rock_images = open_images('test_media/imgs/objects_data_analysis/rock_imgs_da', '.png')
-    obstacle_images = open_images('test_media/imgs/objects_data_analysis/obstacle_imgs_da', '.png')
+    gb_images = open_images('test_media/imgs/objects_data_analysis/golf_ball_samples_imgs_da/gb_da_edited', '*.png')
+    # rock_images = open_images('test_media/imgs/objects_data_analysis/rock_imgs_da', '.png')
+    # obstacle_images = open_images('test_media/imgs/objects_data_analysis/obstacle_imgs_da', '.png')
 
     # Prepare image data:
     gb_img_data = prepare_img_data(gb_images)
-    rock_img_data = prepare_img_data(rock_images)
-    obstacle_img_data = prepare_img_data(obstacle_images)
+    # rock_img_data = prepare_img_data(rock_images)
+    # obstacle_img_data = prepare_img_data(obstacle_images)
 
     # Calculate densities of image data:
         # Golf ball sample:
-    gb_data_density = density_plot_generate(gb_img_data)
+    gb_data_densities = density_plot_generate(gb_img_data)
     
-        # Rock:
-    rock_data_density = density_plot_generate(rock_img_data)
+    #     # Rock:
+    # rock_data_density = density_plot_generate(rock_img_data)
 
-        # Obstacle:
-    obstacle_data_density = density_plot_generate(obstacle_img_data)
+    #     # Obstacle:
+    # obstacle_data_density = density_plot_generate(obstacle_img_data)
     
     # Prepare figures and plots:
     gb_figure = plt.figure()
     _, gb_subplts_ax = plt.subplots(1, 2, sharex=True, sharey=True)
 
-    rock_figure = plt.figure()
-    _, rock_subplts_ax = plt.subplots(1, 2, sharex=True, sharey=True)
+    # rock_figure = plt.figure()
+    # _, rock_subplts_ax = plt.subplots(1, 2, sharex=True, sharey=True)
     
-    obstacle_figure = plt.figure()
-    _, obstacle_subplts_ax = plt.subplots(1, 2, sharex=True, sharey=True)
+    # obstacle_figure = plt.figure()
+    # _, obstacle_subplts_ax = plt.subplots(1, 2, sharex=True, sharey=True)
 
     # Display density data:
     density_plot_display(gb_data_density, figure=gb_subplts_ax)
-    density_plot_display(rock_data_density, figure=rock_subplts_ax)
-    density_plot_display(obstacle_data_density, figure=obstacle_subplts_ax)
+    # density_plot_display(rock_data_density, figure=rock_subplts_ax)
+    # density_plot_display(obstacle_data_density, figure=obstacle_subplts_ax)
     
