@@ -36,8 +36,7 @@ def apply_superpx_descriptors(superpx_img, img):
     # Hue and Saturation average and MAD (mean absolute deviation)
     hue_mean_sat_mean_hue_MAD_sat_MAD = gen_discriptor_img(superpx_img, img, hs_stats_descriptor, descr_dims=4)
     descr_imgs.append(hue_mean_sat_mean_hue_MAD_sat_MAD[:,:,:3])
-    asdf = np.delete(hue_mean_sat_mean_hue_MAD_sat_MAD, 2, 2)
-    descr_imgs.append(asdf)
+    descr_imgs.append(np.delete(hue_mean_sat_mean_hue_MAD_sat_MAD, 2, 2))
     return descr_imgs
 
 def disp_descr_imgs(superpx_img, fig_and_ax, descr_imgs, descr_imgs_num):
