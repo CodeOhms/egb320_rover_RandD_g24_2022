@@ -30,7 +30,8 @@ def prepare_img_data(image_list):
     sat_MAD_packed = np.array([])
 
     for image in image_list:
-        hsv = cv.cvtColor(image, cv.COLOR_BGR2HSV)
+        image32 = np.float32(image)
+        hsv = cv.cvtColor(image32, cv.COLOR_BGR2HSV_FULL)
         h = hsv[:,:,0]
         h = h.reshape(h.shape[0]*h.shape[1])
         s = hsv[:,:,1]
@@ -79,7 +80,7 @@ if __name__ == "__main__":
     # obstacle_data_density = density_plot_generate(obstacle_img_data)
     
     # Prepare figures and plots:
-    gb_figure, gb_subplts_axs = plt.subplots(1, 2, sharex=True, sharey=True)
+    gb_figure, gb_subplts_axs = plt.subplots(4, 1)
 
 
     # rock_figure = plt.figure()
@@ -89,7 +90,10 @@ if __name__ == "__main__":
     # _, obstacle_subplts_ax = plt.subplots(1, 2, sharex=True, sharey=True)
 
     # Display density data:
-    density_plot_display(gb_data_densities, np.linspace(0,180,181), gb_subplts_axs)
+        # Hue and hue MAD:
+    density_plot_display(gb_data_densities[0::2], np.linspace(0,360,361), gb_subplts_axs[0::2])
+        # Sat and sat MAD:
+    density_plot_display(gb_data_densities[1::2], np.linspace(0,1,100), gb_subplts_axs[1::2])
     # density_plot_display(rock_data_density, figure=rock_subplts_ax)
     # density_plot_display(obstacle_data_density, figure=obstacle_subplts_ax)
     
