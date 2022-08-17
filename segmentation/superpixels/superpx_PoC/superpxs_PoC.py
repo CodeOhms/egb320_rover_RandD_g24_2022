@@ -80,6 +80,7 @@ if __name__ == "__main__":
         masked_gb = cv.bitwise_and(frame, frame, mask_gb)
 
     # Display results:
-        plt.imshow(masked_gb)
+        gb_masked_fig = plt.imshow(masked_gb)
+        gb_masked_fig.canvas.mpl_connect('close_event', on_close)
         plt.show()
 
