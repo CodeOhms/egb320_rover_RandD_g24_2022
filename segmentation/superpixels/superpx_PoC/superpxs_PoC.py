@@ -1,5 +1,6 @@
 import numpy as np
 from skimage import segmentation
+from skimage.segmentation import mark_boundaries
 import cv2 as cv
 import matplotlib.pyplot as plt
 
@@ -58,12 +59,15 @@ def on_close(event):
 if __name__ == "__main__":
     capture = cv.VideoCapture(-1)
 
-    hue_range_gb = np.array([[0, 25], [155, 180]], dtype=np.uint8)
-    sat_deviation = 0.13
-    sat_range_gb = np.array([round(255*(0.81-sat_deviation)), round(255*(0.81+sat_deviation))], dtype=np.uint8)
+    hue_range_gb = np.array([[0, 38], [155, 180]], dtype=np.uint8)
+    sat_deviation = 0.15
+    # sat_range_gb = np.array([round(255*(0.81-sat_deviation)), round(255*(0.81+sat_deviation))], dtype=np.uint8)
+    sat_range_gb = np.array([128, 255], dtype=np.uint8)
 
     frame = grab_frame(capture)
 
+    frame_fig = plt.figure()
+    frame_imgobj = plt.imshow(frame)
     gb_masked_fig = plt.figure()
     gb_masked_fig.canvas.mpl_connect('close_event', on_close)
     gb_masked_imgobj = plt.imshow(frame)
@@ -86,7 +90,9 @@ if __name__ == "__main__":
         masked_gb = cv.bitwise_and(frame, frame, mask=mask_gb)
 
     # Display results:
-        # gb_masked_imgobj.set_data(cv.addWeighted(frame, 1, mask_gb.convert('RGB'), 0.255, 0.0))
+        frame_imgobj.set_data(mark_boundaries(frame, superpx_img))
+        frame_fig.canvas.draw()
+        frame_fig.canvas.flush_events()
         gb_masked_imgobj.set_data(masked_gb)
         gb_masked_fig.canvas.draw()
         gb_masked_fig.canvas.flush_events()
