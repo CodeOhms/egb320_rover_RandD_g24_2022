@@ -74,7 +74,7 @@ if __name__ == '__main__':
     capture = None
     img = None
     if use_video:
-        capture = cv.VideoCapture(0)
+        capture = cv.VideoCapture(-1)
         img = grab_frame(capture)
         plt.ion()
     else:

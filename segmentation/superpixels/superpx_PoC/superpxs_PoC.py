@@ -56,13 +56,19 @@ def on_close(event):
     loop = False
 
 if __name__ == "__main__":
-    capture = cv.VideoCapture(0)
+    capture = cv.VideoCapture(-1)
 
-    hue_range_gb = (np.array([0, 50]), np.array([310, 360]))
-    sat_deviation = 0.1
-    sat_range_gb = np.array([0.81-sat_deviation, 0.81+sat_deviation])
+    hue_range_gb = np.array([[0, 25], [155, 180]], dtype=np.uint8)
+    sat_deviation = 0.13
+    sat_range_gb = np.array([round(255*(0.81-sat_deviation)), round(255*(0.81+sat_deviation))], dtype=np.uint8)
 
-    global loop
+    frame = grab_frame(capture)
+
+    gb_masked_fig = plt.figure()
+    gb_masked_fig.canvas.mpl_connect('close_event', on_close)
+    gb_masked_imgobj = plt.imshow(frame)
+    plt.ion()
+
     while(loop):
     # Capture frame from camera:
         frame = grab_frame(capture)
@@ -74,13 +80,17 @@ if __name__ == "__main__":
         descr_img = gen_discriptor_img(superpx_img, frame, hs_stats_descriptor, descr_dims=4)
 
     # Select descriptors to mask objects:
-        mask_hue_gb = cv.bitwise_or(cv.inRange(descr_img[:,:,0], hue_range_gb[0][0], hue_range_gb[0][1]),
-            cv.inRange(descr_img[:,:,0], hue_range_gb[1][0], hue_range_gb[1][1]))
-        mask_gb = cv.bitwise_and(mask_hue_gb, cv.inRange(descr_img[:,:,1], sat_range_gb[0], sat_range_gb[1]))
-        masked_gb = cv.bitwise_and(frame, frame, mask_gb)
+        mask_hue_gb = cv.bitwise_or(cv.inRange(descr_img[:,:,0], int(hue_range_gb[0,0]), int(hue_range_gb[0,1])),
+            cv.inRange(descr_img[:,:,0], int(hue_range_gb[1,0]), int(hue_range_gb[1,1])))
+        mask_gb = cv.bitwise_and(mask_hue_gb, cv.inRange(descr_img[:,:,1], int(sat_range_gb[0]), int(sat_range_gb[1])))
+        masked_gb = cv.bitwise_and(frame, frame, mask=mask_gb)
 
     # Display results:
-        gb_masked_fig = plt.imshow(masked_gb)
-        gb_masked_fig.canvas.mpl_connect('close_event', on_close)
-        plt.show()
-
+        # gb_masked_imgobj.set_data(cv.addWeighted(frame, 1, mask_gb.convert('RGB'), 0.255, 0.0))
+        gb_masked_imgobj.set_data(masked_gb)
+        gb_masked_fig.canvas.draw()
+        gb_masked_fig.canvas.flush_events()
+        plt.pause(0.005)
+    
+    plt.show()
+    plt.ioff()
