@@ -2,6 +2,7 @@ from skimage import filters
 from skimage.morphology import disk
 from skimage.feature import peak_local_max
 from skimage import segmentation
+from fast_slic import Slic
 from skimage import measure
 
 
@@ -26,7 +27,12 @@ def superpx_watershed_trans(grad_img, markers):
 ####
 #### SLIC
 def superpx_slic_trans(img):
-    superpx_im = segmentation.slic(img, slic_zero=True)
-    return superpx_im
+    # superpx_im = segmentation.slic(img, slic_zero=True)
+    # return superpx_im
+
+    # Try a potentially faster SLIC implementation:
+    slic = Slic(num_components=50, compactness=10)
+    assignment = slic.iterate(img) # Cluster Map
+    return assignment
     
 ####

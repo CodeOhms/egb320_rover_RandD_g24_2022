@@ -1,12 +1,20 @@
 import numpy as np
 from skimage import segmentation
+from fast_slic import Slic
 from skimage.segmentation import mark_boundaries
 import cv2 as cv
 import matplotlib.pyplot as plt
 
 def superpx_slic_trans(img):
-    superpx_im = segmentation.slic(img, slic_zero=True)
-    return superpx_im
+    # superpx_im = segmentation.slic(img, slic_zero=True)
+    # return superpx_im
+
+    # Try a potentially faster SLIC implementation:
+    slic = Slic(num_components=1600, compactness=10)
+    assignment = slic.iterate(image) # Cluster Map
+    print(assignment)
+    print(slic.slic_model.clusters) # The cluster information of superpixels.
+    return assignment
 
 def gen_superpx_img(img):
     return superpx_slic_trans(img)

@@ -40,9 +40,9 @@ def apply_superpx_descriptors(superpx_img, img):
     return descr_imgs
 
 def disp_descr_imgs(superpx_img, fig_and_ax, descr_imgs, descr_imgs_num):
+    fig = fig_and_ax.pop(0)
     if descr_imgs_num < 1:
-        descr_imgs_fig = fig_and_ax[0]
-        descr_imgs_fig.set_data(mark_boundaries(descr_imgs[0], superpx_img))
+        fig.set_data(mark_boundaries(descr_imgs[0], superpx_img))
     else:
         figs_num_hor = math.ceil(descr_imgs_num/2)
         if figs_num_hor == 1:
@@ -57,12 +57,11 @@ def grab_frame(capture):
     ret, frame = capture.read()
     return cv.cvtColor(frame, cv.COLOR_BGR2RGB)
 
-use_video = True
-def close(event):
-    global use_video
-    if event.key == 'c':
-        plt.close(event.canvas.figure)
-        use_video = False
+use_video = False
+do_loop = True
+def on_close(event):
+    global do_loop
+    do_loop = False
 
 if __name__ == '__main__':
     # Set the working directory to the root folder of the R&D git repo:
@@ -88,17 +87,18 @@ if __name__ == '__main__':
         # Setup figures:
     descr_imgs_fig = None
     if descr_imgs_num < 1:
-        descr_imgs_fig = plt.figure()
+        descr_imgs_fig = [plt.figure()]
     else:
         figs_num_hor = math.ceil(descr_imgs_num/2)
         if figs_num_hor == 1:
             figs_num_hor = 2
-        _, ax = plt.subplots(2, figs_num_hor, sharex=True, sharey=True)
-        descr_imgs_fig = [ ]
+        descr_imgs_fig, ax = plt.subplots(2, figs_num_hor, sharex=True, sharey=True)
+        descr_imgs_fig = [descr_imgs_fig]
         for i_fig in range(descr_imgs_num):
             descr_imgs_fig.append(ax[i_fig%figs_num_hor, math.floor(i_fig/figs_num_hor)].imshow(img))
+    descr_imgs_fig[0].canvas.mpl_connect('close_event', on_close)
 
-    while(True):
+    while(do_loop):
         if use_video:
             img = grab_frame(capture)
 
@@ -107,12 +107,10 @@ if __name__ == '__main__':
 
         disp_descr_imgs(superpx_img, descr_imgs_fig, descr_imgs, len(descr_imgs))
 
-        plt.pause(0.005)
-
         if not use_video:
-            break
-
-    plt.show()
+            plt.show()
+        else:
+            plt.pause(0.005)
 
     if use_video:
         plt.ioff()
