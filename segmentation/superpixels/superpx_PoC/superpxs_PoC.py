@@ -10,10 +10,8 @@ def superpx_slic_trans(img):
     # return superpx_im
 
     # Try a potentially faster SLIC implementation:
-    slic = Slic(num_components=1600, compactness=10)
-    assignment = slic.iterate(image) # Cluster Map
-    print(assignment)
-    print(slic.slic_model.clusters) # The cluster information of superpixels.
+    slic = Slic(num_components=50, compactness=10)
+    assignment = slic.iterate(img) # Cluster Map
     return assignment
 
 def gen_superpx_img(img):
