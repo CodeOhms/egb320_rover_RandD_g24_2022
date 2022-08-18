@@ -1,6 +1,7 @@
 import numpy as np
 from skimage import segmentation
-from fast_slic import Slic
+#from fast_slic import Slic
+from fast_slic.neon import SlicNeon as Slic
 from skimage.segmentation import mark_boundaries
 import cv2 as cv
 import matplotlib.pyplot as plt
