@@ -1,7 +1,7 @@
 import numpy as np
 from skimage import segmentation
-#from fast_slic import Slic
-from fast_slic.neon import SlicNeon as Slic
+from fast_slic import Slic
+# from fast_slic.neon import SlicNeon as Slic
 from skimage.segmentation import mark_boundaries
 import cv2 as cv
 import matplotlib.pyplot as plt
@@ -11,7 +11,7 @@ def superpx_slic_trans(img):
     # return superpx_im
 
     # Try a potentially faster SLIC implementation:
-    slic = Slic(num_components=50, compactness=10)
+    slic = Slic(num_components=35, compactness=10, min_size_factor=0)
     assignment = slic.iterate(img) # Cluster Map
     return assignment
 
@@ -41,7 +41,8 @@ def hs_stats_descriptor(args):
     hue_mad = MAD(region[:,0])
     sat_mad = MAD(region[:,1])
 
-    return (hue_avg, sat_avg, hue_mad, sat_mad)
+    # return (hue_avg, sat_avg, hue_mad, sat_mad)
+    return (hue_avg, sat_avg)
 
 def gen_discriptor_img(superpx_img, img, descr_func, descr_func_args=[None], descr_dims=3):
     descriptors = np.zeros((superpx_img.max()+1, descr_dims))
@@ -64,7 +65,15 @@ def on_close(event):
     loop = False
 
 if __name__ == "__main__":
-    capture = cv.VideoCapture(-1)
+    capture = cv.VideoCapture("/dev/video0")
+    capture.set(cv.CAP_PROP_AUTO_WB, 0)
+    capture.set(cv.CAP_PROP_FRAME_WIDTH, 160)
+    capture.set(cv.CAP_PROP_FRAME_HEIGHT, 120)
+    capture.set(cv.CAP_PROP_BUFFERSIZE, 38)
+    print(capture.get(cv.CAP_PROP_AUTO_WB))
+    print(capture.get(cv.CAP_PROP_FRAME_WIDTH), capture.get(cv.CAP_PROP_FRAME_HEIGHT))
+    print('FPS:' + str(capture.get(cv.CAP_PROP_FRAME_COUNT)))
+    print('Capture buffersize: ' + str(capture.get(cv.CAP_PROP_BUFFERSIZE)))
 
     hue_range_gb = np.array([[0, 38], [155, 180]], dtype=np.uint8)
     sat_deviation = 0.15
@@ -88,7 +97,7 @@ if __name__ == "__main__":
         superpx_img = gen_superpx_img(frame)
 
     # Apply descriptors:
-        descr_img = gen_discriptor_img(superpx_img, frame, hs_stats_descriptor, descr_dims=4)
+        descr_img = gen_discriptor_img(superpx_img, frame, hs_stats_descriptor, descr_dims=2)
 
     # Select descriptors to mask objects:
         mask_hue_gb = cv.bitwise_or(cv.inRange(descr_img[:,:,0], int(hue_range_gb[0,0]), int(hue_range_gb[0,1])),
