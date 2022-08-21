@@ -65,11 +65,12 @@ def on_close(event):
     loop = False
 
 if __name__ == "__main__":
-    capture = cv.VideoCapture("/dev/video0")
+    #capture = cv.VideoCapture("/dev/video0")
+    capture = cv.VideoCapture(-1)
     capture.set(cv.CAP_PROP_AUTO_WB, 0)
     capture.set(cv.CAP_PROP_FRAME_WIDTH, 160)
     capture.set(cv.CAP_PROP_FRAME_HEIGHT, 120)
-    capture.set(cv.CAP_PROP_BUFFERSIZE, 38)
+    capture.set(cv.CAP_PROP_BUFFERSIZE, 10)
     print(capture.get(cv.CAP_PROP_AUTO_WB))
     print(capture.get(cv.CAP_PROP_FRAME_WIDTH), capture.get(cv.CAP_PROP_FRAME_HEIGHT))
     print('FPS:' + str(capture.get(cv.CAP_PROP_FRAME_COUNT)))
