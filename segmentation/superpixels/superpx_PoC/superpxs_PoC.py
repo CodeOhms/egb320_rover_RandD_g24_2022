@@ -1,19 +1,21 @@
+import time
 import numpy as np
+from imutils.video import VideoStream
 from skimage import segmentation
-from fast_slic import Slic
-# from fast_slic.neon import SlicNeon as Slic
+#from fast_slic import Slic
+from fast_slic.neon import SlicNeon as Slic
+from skimage.segmentation import felzenszwalb
 from skimage.segmentation import mark_boundaries
 import cv2 as cv
 import matplotlib.pyplot as plt
 
 def superpx_slic_trans(img):
-    # superpx_im = segmentation.slic(img, slic_zero=True)
-    # return superpx_im
-
-    # Try a potentially faster SLIC implementation:
-    slic = Slic(num_components=35, compactness=10, min_size_factor=0)
+    slic = Slic(num_components=40, compactness=1, min_size_factor=0)
     assignment = slic.iterate(img) # Cluster Map
     return assignment
+    
+    #segments = felzenszwalb(img, scale=100, sigma=0.5, min_size=50)
+    #return segments
 
 def gen_superpx_img(img):
     return superpx_slic_trans(img)
@@ -55,44 +57,33 @@ def gen_discriptor_img(superpx_img, img, descr_func, descr_func_args=[None], des
 
     return im_descriptors
 
-def grab_frame(capture):
-    ret, frame = capture.read()
-    return cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+def grab_frame(capture, res):
+    frame = capture.read()
+    return frame
 
 loop = True
-def on_close(event):
+def on_close():
     global loop
     loop = False
 
-if __name__ == "__main__":
-    #capture = cv.VideoCapture("/dev/video0")
-    capture = cv.VideoCapture(-1)
-    capture.set(cv.CAP_PROP_AUTO_WB, 0)
-    capture.set(cv.CAP_PROP_FRAME_WIDTH, 160)
-    capture.set(cv.CAP_PROP_FRAME_HEIGHT, 120)
-    capture.set(cv.CAP_PROP_BUFFERSIZE, 10)
-    print(capture.get(cv.CAP_PROP_AUTO_WB))
-    print(capture.get(cv.CAP_PROP_FRAME_WIDTH), capture.get(cv.CAP_PROP_FRAME_HEIGHT))
-    print('FPS:' + str(capture.get(cv.CAP_PROP_FRAME_COUNT)))
-    print('Capture buffersize: ' + str(capture.get(cv.CAP_PROP_BUFFERSIZE)))
-
+def PoC(capture, cam_res):
+    global loop
+    
     hue_range_gb = np.array([[0, 38], [155, 180]], dtype=np.uint8)
     sat_deviation = 0.15
     # sat_range_gb = np.array([round(255*(0.81-sat_deviation)), round(255*(0.81+sat_deviation))], dtype=np.uint8)
     sat_range_gb = np.array([128, 255], dtype=np.uint8)
 
-    frame = grab_frame(capture)
+    frame = grab_frame(capture, cam_res)
 
-    frame_fig = plt.figure()
-    frame_imgobj = plt.imshow(frame)
-    gb_masked_fig = plt.figure()
-    gb_masked_fig.canvas.mpl_connect('close_event', on_close)
-    gb_masked_imgobj = plt.imshow(frame)
-    plt.ion()
+    prev_frame_time = 0
+    new_frame_time = 0
 
     while(loop):
+        new_frame_time = time.time()
+        
     # Capture frame from camera:
-        frame = grab_frame(capture)
+        frame = grab_frame(capture, cam_res)
 
     # Create superpixel image:
         superpx_img = gen_superpx_img(frame)
@@ -107,13 +98,28 @@ if __name__ == "__main__":
         masked_gb = cv.bitwise_and(frame, frame, mask=mask_gb)
 
     # Display results:
-        frame_imgobj.set_data(mark_boundaries(frame, superpx_img))
-        frame_fig.canvas.draw()
-        frame_fig.canvas.flush_events()
-        gb_masked_imgobj.set_data(masked_gb)
-        gb_masked_fig.canvas.draw()
-        gb_masked_fig.canvas.flush_events()
-        plt.pause(0.005)
+        cv.imshow("Frame", frame)
+        cv.imshow("Superpixels", mark_boundaries(frame, superpx_img))
+        cv.imshow("Masked", masked_gb)
+        key = cv.waitKey(1) & 0xFF
+        #if the `q` key was pressed, break from the loop
+        if key == ord("q"):
+            on_close()
+            
+        fps = 1/(new_frame_time - prev_frame_time)
+        print(fps)
+        prev_frame_time = new_frame_time
     
-    plt.show()
-    plt.ioff()
+if __name__ == "__main__":    
+    # initialize the video stream and allow the cammera sensor to warmup
+    # Vertical res must be multiple of 16, and horizontal a multiple of 32
+    cam_res = (128, 64)
+    video_stream = VideoStream(usePiCamera=True, resolution=cam_res, framerate=25).start()
+    time.sleep(2.0)
+    
+    PoC(video_stream, cam_res)
+    
+    cv.destroyAllWindows()
+    video_stream.stop()
+    
+    print("Exiting.")
