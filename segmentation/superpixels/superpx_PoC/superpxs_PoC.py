@@ -110,7 +110,7 @@ def PoC(capture, cam_res):
         print(fps)
         prev_frame_time = new_frame_time
     
-if __name__ == "__main__":    
+if __name__ == "__main__":
     # initialize the video stream and allow the cammera sensor to warmup
     # Vertical res must be multiple of 16, and horizontal a multiple of 32
     cam_res = (128, 64)
