@@ -4,18 +4,15 @@ from imutils.video import VideoStream
 from skimage import segmentation
 #from fast_slic import Slic
 from fast_slic.neon import SlicNeon as Slic
-from skimage.segmentation import felzenszwalb
 from skimage.segmentation import mark_boundaries
 import cv2 as cv
 import matplotlib.pyplot as plt
 
 def superpx_slic_trans(img):
-    slic = Slic(num_components=40, compactness=1, min_size_factor=0)
+    # slic = Slic(num_components=40, compactness=1, min_size_factor=0) # Supposedly gets FPS increase, but I don't see any...
+    slic = Slic(num_components=40, compactness=10)
     assignment = slic.iterate(img) # Cluster Map
     return assignment
-    
-    #segments = felzenszwalb(img, scale=100, sigma=0.5, min_size=50)
-    #return segments
 
 def gen_superpx_img(img):
     return superpx_slic_trans(img)
@@ -34,7 +31,7 @@ def hs_stats_descriptor(args):
     img = args[0]
     superpx_img_indicies = args[1]
 
-    img_hsv = cv.cvtColor(img, cv.COLOR_RGB2HSV)
+    img_hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
 
     # Region as a column of HSV pairs:
     region = get_region1d(img_hsv, superpx_img_indicies)
@@ -78,6 +75,9 @@ def PoC(capture, cam_res):
 
     prev_frame_time = 0
     new_frame_time = 0
+    
+    dbug_img = np.zeros((100,512,3),np.uint8)
+    font = cv.FONT_HERSHEY_SIMPLEX
 
     while(loop):
         new_frame_time = time.time()
@@ -94,27 +94,51 @@ def PoC(capture, cam_res):
     # Select descriptors to mask objects:
         mask_hue_gb = cv.bitwise_or(cv.inRange(descr_img[:,:,0], int(hue_range_gb[0,0]), int(hue_range_gb[0,1])),
             cv.inRange(descr_img[:,:,0], int(hue_range_gb[1,0]), int(hue_range_gb[1,1])))
-        mask_gb = cv.bitwise_and(mask_hue_gb, cv.inRange(descr_img[:,:,1], int(sat_range_gb[0]), int(sat_range_gb[1])))
+        mask_sat_gb = cv.inRange(descr_img[:,:,1], int(sat_range_gb[0]), int(sat_range_gb[1]))
+        mask_gb = cv.bitwise_and(mask_hue_gb, mask_sat_gb)
         masked_gb = cv.bitwise_and(frame, frame, mask=mask_gb)
+    
+    # Find contours:
+        print("Finding contours...")
+        _, contours, _ = cv.findContours(masked_gb, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+
+    # Find the convex hull object for each contour:
+        hull_list = []
+        for i in range(len(contours)):
+            hull = cv.convexHull(contours[i])
+            hull_list.append(hull)
+
+    # Draw contours + hull results
+        contours_img = np.zeros((masked_gb.shape[0], masked_gb.shape[1], 3), dtype=np.uint8)
+        for i in range(len(contours)):
+            color = (rng.randint(0,256), rng.randint(0,256), rng.randint(0,256))
+            cv.drawContours(contours_img, contours, i, color)
+            cv.drawContours(contours_img, hull_list, i, color)
 
     # Display results:
         cv.imshow("Frame", frame)
+        cv.imshow("Hue mask", mask_hue_gb)
+        cv.imshow("Saturation mask", mask_sat_gb)
         cv.imshow("Superpixels", mark_boundaries(frame, superpx_img))
         cv.imshow("Masked", masked_gb)
+        cv.imshow("Contours", contours_img)
         key = cv.waitKey(1) & 0xFF
         #if the `q` key was pressed, break from the loop
         if key == ord("q"):
             on_close()
             
         fps = 1/(new_frame_time - prev_frame_time)
-        print(fps)
+        cv.putText(dbug_img, "FPS "+str(fps), (0,25), font, 1, (255,255,255), 2, cv.LINE_AA)
+        cv.imshow("Debug message", dbug_img)
         prev_frame_time = new_frame_time
+        dbug_img = np.zeros((100,512,3),np.uint8)
     
 if __name__ == "__main__":
     # initialize the video stream and allow the cammera sensor to warmup
     # Vertical res must be multiple of 16, and horizontal a multiple of 32
     cam_res = (128, 64)
-    video_stream = VideoStream(usePiCamera=True, resolution=cam_res, framerate=25).start()
+    video_stream = VideoStream(usePiCamera=True, resolution=cam_res, framerate=15).start()
+    print("Camera warming up...")
     time.sleep(2.0)
     
     PoC(video_stream, cam_res)
