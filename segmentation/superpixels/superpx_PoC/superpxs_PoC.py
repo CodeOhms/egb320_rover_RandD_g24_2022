@@ -37,10 +37,7 @@ def hs_stats_descriptor(args):
     region = get_region1d(img_hsv, superpx_img_indicies)
     hue_avg = region[:,0].mean()
     sat_avg = region[:,1].mean()
-    hue_mad = MAD(region[:,0])
-    sat_mad = MAD(region[:,1])
 
-    # return (hue_avg, sat_avg, hue_mad, sat_mad)
     return (hue_avg, sat_avg)
 
 def gen_discriptor_img(superpx_img, img, descr_func, descr_func_args=[None], descr_dims=3):
@@ -66,10 +63,11 @@ def on_close():
 def PoC(capture, cam_res):
     global loop
     
-    hue_range_gb = np.array([[0, 38], [155, 180]], dtype=np.uint8)
+    hue_range_gb = np.array([[0, 180], [155, 180]], dtype=np.uint8)
     sat_deviation = 0.15
-    # sat_range_gb = np.array([round(255*(0.81-sat_deviation)), round(255*(0.81+sat_deviation))], dtype=np.uint8)
-    sat_range_gb = np.array([128, 255], dtype=np.uint8)
+    sat_mid_gb = 0.8125
+    sat_range_gb = np.array([round(255*(sat_mid_gb-sat_deviation)), round(255*(sat_mid_gb+sat_deviation))], dtype=np.uint8)
+    # sat_range_gb = np.array([128, 255], dtype=np.uint8)
 
     frame = grab_frame(capture, cam_res)
 
@@ -105,8 +103,8 @@ def PoC(capture, cam_res):
     # Find the convex hull object for each contour:
         hull_list = []
         for i in range(len(contours)):
-            hull = cv.convexHull(contours[i])
-            hull_list.append(hull)
+           hull = cv.convexHull(contours[i])
+           hull_list.append(hull)
 
     # Draw contours + hull results
         contours_img = np.zeros((masked_gb.shape[0], masked_gb.shape[1], 3), dtype=np.uint8)
