@@ -17,13 +17,6 @@ def superpx_slic_trans(img):
 def gen_superpx_img(img):
     return superpx_slic_trans(img)
 
-def MAD(data):
-    """
-    Mean Absolute Deviation.
-    """
-
-    return np.mean(np.absolute(data - np.mean(data)))
-
 def get_region1d(img, superpx_img_indicies):
     return img[superpx_img_indicies]
 
@@ -63,7 +56,7 @@ def on_close():
 def PoC(capture, cam_res):
     global loop
     
-    hue_range_gb = np.array([[0, 180], [155, 180]], dtype=np.uint8)
+    hue_range_gb = np.array([[0, 38], [150, 180]])
     sat_deviation = 0.15
     sat_mid_gb = 0.8125
     sat_range_gb = np.array([round(255*(sat_mid_gb-sat_deviation)), round(255*(sat_mid_gb+sat_deviation))], dtype=np.uint8)
@@ -74,6 +67,7 @@ def PoC(capture, cam_res):
     prev_frame_time = 0
     new_frame_time = 0
     
+    dbug_img_canvas = np.zeros((100,512,3),np.uint8)
     dbug_img = np.zeros((100,512,3),np.uint8)
     font = cv.FONT_HERSHEY_SIMPLEX
 
@@ -97,8 +91,7 @@ def PoC(capture, cam_res):
         masked_gb = cv.bitwise_and(frame, frame, mask=mask_gb)
     
     # Find contours:
-        print("Finding contours...")
-        _, contours, _ = cv.findContours(masked_gb, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv.findContours(mask_gb, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
     # Find the convex hull object for each contour:
         hull_list = []
@@ -107,11 +100,9 @@ def PoC(capture, cam_res):
            hull_list.append(hull)
 
     # Draw contours + hull results
-        contours_img = np.zeros((masked_gb.shape[0], masked_gb.shape[1], 3), dtype=np.uint8)
-        for i in range(len(contours)):
-            color = (rng.randint(0,256), rng.randint(0,256), rng.randint(0,256))
-            cv.drawContours(contours_img, contours, i, color)
-            cv.drawContours(contours_img, hull_list, i, color)
+        contours_img = np.copy(frame)
+        cv.drawContours(contours_img, contours, -1, (5,255,0), 2) # Bright green
+        cv.drawContours(contours_img, hull_list, -1, (250,0,255), 2) # Pink/purple
 
     # Display results:
         cv.imshow("Frame", frame)
@@ -129,13 +120,13 @@ def PoC(capture, cam_res):
         cv.putText(dbug_img, "FPS "+str(fps), (0,25), font, 1, (255,255,255), 2, cv.LINE_AA)
         cv.imshow("Debug message", dbug_img)
         prev_frame_time = new_frame_time
-        dbug_img = np.zeros((100,512,3),np.uint8)
+        dbug_img = np.copy(dbug_img_canvas)
     
 if __name__ == "__main__":
     # initialize the video stream and allow the cammera sensor to warmup
     # Vertical res must be multiple of 16, and horizontal a multiple of 32
     cam_res = (128, 64)
-    video_stream = VideoStream(usePiCamera=True, resolution=cam_res, framerate=15).start()
+    video_stream = VideoStream(usePiCamera=True, resolution=cam_res, framerate=20).start()
     print("Camera warming up...")
     time.sleep(2.0)
     
