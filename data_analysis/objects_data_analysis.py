@@ -2,6 +2,7 @@ import glob
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
+import seaborn as sns
 # import scipy as sp
 from scipy import stats
 
@@ -51,12 +52,15 @@ def density_plot_generate(data_set, smoothing=.5):
         density.covariance_factor = lambda : smoothing
         density._compute_covariance()
         densities.append(density)
+
+        # densities.append(data)
     
     return densities
 
 def density_plot_display(densities, domain, axs, titles):
     for ax, density, title in zip(axs, densities, titles):
         ax.plot(domain, density(domain))
+        # sns.kdeplot(density)
         ax.set_xlabel(title)
         ax.set_ylabel('Density')
 
