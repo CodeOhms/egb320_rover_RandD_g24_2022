@@ -30,7 +30,7 @@ def apply_superpx_descriptors(superpx_img, img):
 
     # Dominant Colour:
     # descr_imgs.append(gen_discriptor_img(superpx_img, img, dominant_colour_descriptor))
-    dom_colours_num = 3
+    dom_colours_num = 2
     dom_colour_imgs = gen_discriptor_img(superpx_img, img, dominant_colour_descriptor, descr_dims=dom_colours_num*3, descr_func_args=[dom_colours_num])
     # dom_colour_imgs = gen_discriptor_img(superpx_img, img, dominant_colour_descriptor, descr_dims=dom_colours_num, descr_func_args=[dom_colours_num])
     # for i in range(int(dom_colour_imgs.shape[2]/dom_colours_num)):
@@ -93,7 +93,7 @@ if __name__ == '__main__':
 
     plt.tight_layout()
 
-    descr_imgs_num = 6
+    descr_imgs_num = 5
 
     # Display descriptor images:
         # Setup figures:
