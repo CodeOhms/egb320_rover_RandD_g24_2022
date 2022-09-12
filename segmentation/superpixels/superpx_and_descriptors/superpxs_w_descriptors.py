@@ -21,8 +21,6 @@ def create_superpx_img(img):
 
 def apply_superpx_descriptors(superpx_img, img):
     descr_imgs = [ ]
-    # Avg. RGB:
-    descr_imgs.append(gen_discriptor_img(superpx_img, img, avg_rgb_descriptor))
 
     # Jaccard Similarity:
         # NOTE: Currently doesn't work too well due to padding pixels placed around the irregularly shaped region.
@@ -31,12 +29,23 @@ def apply_superpx_descriptors(superpx_img, img):
     # descr_imgs.append(gen_discriptor_img(superpx_img, img, jaccard_descriptor, [sample_comp_img]))
 
     # Dominant Colour:
-    descr_imgs.append(gen_discriptor_img(superpx_img, img, dominant_colour_descriptor))
+    # descr_imgs.append(gen_discriptor_img(superpx_img, img, dominant_colour_descriptor))
+    dom_colours_num = 2
+    dom_colour_imgs = gen_discriptor_img(superpx_img, img, dominant_colour_descriptor, descr_dims=dom_colours_num*3, descr_func_args=[dom_colours_num])
+    # dom_colour_imgs = gen_discriptor_img(superpx_img, img, dominant_colour_descriptor, descr_dims=dom_colours_num, descr_func_args=[dom_colours_num])
+    # for i in range(int(dom_colour_imgs.shape[2]/dom_colours_num)):
+    for i in range(dom_colours_num):
+        descr_imgs.append(dom_colour_imgs[:, :, i:i+3])
+        i += 3
 
     # Hue and Saturation average and MAD (mean absolute deviation)
     hue_mean_sat_mean_hue_MAD_sat_MAD = gen_discriptor_img(superpx_img, img, hs_stats_descriptor, descr_dims=4)
     descr_imgs.append(hue_mean_sat_mean_hue_MAD_sat_MAD[:,:,:3])
     descr_imgs.append(np.delete(hue_mean_sat_mean_hue_MAD_sat_MAD, 2, 2))
+
+    # Avg. RGB:
+    descr_imgs.append(gen_discriptor_img(superpx_img, img, avg_rgb_descriptor))
+
     return descr_imgs
 
 def disp_descr_imgs(superpx_img, fig_and_ax, descr_imgs, descr_imgs_num):
@@ -48,7 +57,10 @@ def disp_descr_imgs(superpx_img, fig_and_ax, descr_imgs, descr_imgs_num):
         if figs_num_hor == 1:
             figs_num_hor = 2
         for i_fig, fig in enumerate(descr_imgs):
-            fig_and_ax[i_fig].set_data(mark_boundaries(descr_imgs[i_fig], superpx_img))
+            # fig_and_ax[i_fig].set_data(mark_boundaries(descr_imgs[i_fig], superpx_img))
+            asdf = descr_imgs[i_fig]
+            asdfg = mark_boundaries(asdf, superpx_img)
+            fig_and_ax[i_fig].set_data(asdfg)
 
         for a in ax.ravel():
             a.set_axis_off()
@@ -81,7 +93,7 @@ if __name__ == '__main__':
 
     plt.tight_layout()
 
-    descr_imgs_num = 4
+    descr_imgs_num = 5
 
     # Display descriptor images:
         # Setup figures:
@@ -95,7 +107,7 @@ if __name__ == '__main__':
         descr_imgs_fig, ax = plt.subplots(2, figs_num_hor, sharex=True, sharey=True)
         descr_imgs_fig = [descr_imgs_fig]
         for i_fig in range(descr_imgs_num):
-            descr_imgs_fig.append(ax[i_fig%figs_num_hor, math.floor(i_fig/figs_num_hor)].imshow(img))
+            descr_imgs_fig.append(ax[i_fig%2, math.floor(0.5*i_fig)].imshow(img))
     descr_imgs_fig[0].canvas.mpl_connect('close_event', on_close)
 
     while(do_loop):

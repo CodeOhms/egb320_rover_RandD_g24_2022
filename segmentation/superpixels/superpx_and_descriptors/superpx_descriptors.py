@@ -17,12 +17,14 @@ def get_region2d(img, superpx_img_indicies):
     return cv.bitwise_and(img, img, mask=mask)
 
 def gen_discriptor_img(superpx_img, img, descr_func, descr_func_args=[None], descr_dims=3):
-    descriptors = np.zeros((superpx_img.max()+1, descr_dims))
+    # descriptors = np.zeros((superpx_img.max()+1, descr_dims))
+    descriptors = [ ]
     im_descriptors = np.zeros((img.shape[0], img.shape[1], descr_dims), dtype=img.dtype)
 
     for i in range(superpx_img.min(), superpx_img.max()+1):
-        args = [img, superpx_img==i] + descr_func_args
-        descriptors[i] = descr_func(args)
+        args = [img, superpx_img==i, descr_dims] + descr_func_args
+        # descriptors[i] = descr_func(args)
+        descriptors.append(descr_func(args))
         im_descriptors[superpx_img==i] = descriptors[i]
 
     return im_descriptors
@@ -35,14 +37,14 @@ def avg_rgb_descriptor(args):
 
     # Region as a column of rgb pairs:
     region = get_region1d(img, superpx_img_indicies)
-    return [region[:,0].mean(), region[:,1].mean(), region[:,2].mean()]
+    return (region[:,0].mean(), region[:,1].mean(), region[:,2].mean())
 
 ####
 #### Jaccard Similarity descriptor
 def jaccard_descriptor(args):
     img = args[0]
     superpx_img_indicies = args[1]
-    comp_img = args[2]
+    comp_img = args[3]
 
     region = get_region(img, superpx_img_indicies)
     # mask = np.zeros(img.shape[:2], dtype = "uint8")
@@ -59,9 +61,9 @@ def jaccard_descriptor(args):
 def dominant_colour_descriptor(args):
     img = args[0]
     superpx_img_indicies = args[1]
+    clusters_num = args[3]
 
     region = np.float32(get_region1d(img, superpx_img_indicies))
-    clusters_num = 3
     criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 10, 1.0)
     flags = cv.KMEANS_RANDOM_CENTERS
     compactness, labels, centres = cv.kmeans(region, clusters_num, None, criteria, 10, flags)
@@ -80,10 +82,9 @@ def dominant_colour_descriptor(args):
     
     #descending order sorting as per frequency count
     colours = colours[(-hist).argsort()]
-    hist = hist[(-hist).argsort()] 
+    hist = hist[(-hist).argsort()]
 
-    # Return the most dominant colour:
-    return colours[0]
+    return colours.ravel()
 
 ####
 #### Mean and std. deviation of Hue and Saturation descriptor
