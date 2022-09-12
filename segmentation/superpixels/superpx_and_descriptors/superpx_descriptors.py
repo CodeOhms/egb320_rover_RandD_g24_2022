@@ -16,10 +16,13 @@ def get_region2d(img, superpx_img_indicies):
     mask[superpx_img_indicies] = 255
     return cv.bitwise_and(img, img, mask=mask)
 
-def gen_discriptor_img(superpx_img, img, descr_func, descr_func_args=[None], descr_dims=3):
+def gen_discriptor_img(superpx_img, img, descr_func, img_dtype=None, descr_func_args=[None], descr_dims=3):
+    if img_dtype == None:
+        img_dtype = img.dtype
+    
     # descriptors = np.zeros((superpx_img.max()+1, descr_dims))
     descriptors = [ ]
-    im_descriptors = np.zeros((img.shape[0], img.shape[1], descr_dims), dtype=img.dtype)
+    im_descriptors = np.zeros((img.shape[0], img.shape[1], descr_dims), dtype=img_dtype)
 
     for i in range(superpx_img.min(), superpx_img.max()+1):
         args = [img, superpx_img==i, descr_dims] + descr_func_args
@@ -99,7 +102,7 @@ def hs_stats_descriptor(args):
     img = args[0]
     superpx_img_indicies = args[1]
 
-    img_hsv = cv.cvtColor(img, cv.COLOR_RGB2HSV)
+    img_hsv = cv.cvtColor(img, cv.COLOR_RGB2HSV_FULL)
 
     # Region as a column of HSV pairs:
     region = get_region1d(img_hsv, superpx_img_indicies)
@@ -108,6 +111,6 @@ def hs_stats_descriptor(args):
     hue_mad = MAD(region[:,0])
     sat_mad = MAD(region[:,1])
 
-    return (hue_avg, sat_avg, hue_mad, sat_mad)
+    return (hue_avg, sat_avg, 1.0, hue_mad, sat_mad, 1.0)
 
 ####
