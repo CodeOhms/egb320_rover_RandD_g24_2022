@@ -102,7 +102,8 @@ def hs_stats_descriptor(args):
     img = args[0]
     superpx_img_indicies = args[1]
 
-    img_hsv = cv.cvtColor(img, cv.COLOR_RGB2HSV_FULL)
+    img_f32 = np.float32(img)
+    img_hsv = cv.cvtColor(img_f32, cv.COLOR_RGB2HSV_FULL)
 
     # Region as a column of HSV pairs:
     region = get_region1d(img_hsv, superpx_img_indicies)
@@ -111,6 +112,6 @@ def hs_stats_descriptor(args):
     hue_mad = MAD(region[:,0])
     sat_mad = MAD(region[:,1])
 
-    return (hue_avg, sat_avg, 1.0, hue_mad, sat_mad, 1.0)
-
+    # return (hue_avg, sat_avg, 1.0, hue_mad, sat_mad, 1.0)
+    return (hue_avg, sat_avg, hue_mad, sat_mad)
 ####

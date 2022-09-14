@@ -2,8 +2,25 @@ from skimage import filters
 from skimage.morphology import disk
 from skimage.feature import peak_local_max
 from skimage import segmentation
+from skimage.segmentation import mark_boundaries
 from fast_slic import Slic
 from skimage import measure
+
+####
+#### Helpers
+def show_boundaries(image, suppx_img, output_scale=255, output_channels=slice(0, 1), output_dtype=None):
+    marked_img = mark_boundaries(image, suppx_img, color=[0,0,0])
+    idx = None
+    if output_channels.stop - output_channels.start == 1:
+        idx = output_channels.start
+    else:
+        idx = output_channels
+    marked_img = marked_img[:, :, idx]
+    marked_img *= output_scale
+    if output_dtype is not None:
+        marked_img = marked_img.astype(output_dtype)
+    
+    return marked_img
 
 
 ####
