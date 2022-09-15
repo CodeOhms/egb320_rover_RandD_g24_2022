@@ -117,6 +117,13 @@ def hs_stats_descriptor(args):
 def gen_hue_vectors(angles):
     c_hue_vec = [np.exp(complex(0,a)) for a in angles]
     return np.array( [[np.real(c_num),np.imag(c_num)] for c_num in c_hue_vec] )
+def smallest_angle_between(angles0, angles1):
+# https://stackoverflow.com/questions/7570808/how-do-i-calculate-the-difference-of-two-angle-measures
+    phi = np.abs(angles1 - angles0) % 360
+    distance = phi
+    if phi > 180:
+        distance = 360 - phi
+    return distance
 def MAD_from_hue(args):
     img = args[0]
     superpx_img_indicies = args[1]
@@ -127,10 +134,14 @@ def MAD_from_hue(args):
 
     # Region as a column of HSV pairs:
     region = get_region1d(img_hsv, superpx_img_indicies)
-    hue_vec = gen_hue_vectors(np.array([hue]))
-    img_hue_vecs = gen_hue_vectors(region[:,0])
-    angles_between = np.array( [np.rad2deg(np.arccos(np.dot(hue_vec, ihv))) for ihv in img_hue_vecs] )
-    hue_mad = np.mean(np.absolute(angles_between))
+    # hue_vec = gen_hue_vectors(np.array([hue]))
+    # img_hue_vecs = gen_hue_vectors(region[:,0])
+    # angles_between = np.array( [np.rad2deg(np.arccos(np.dot(hue_vec, ihv))) for ihv in img_hue_vecs] )
+    angles_between = np.array([smallest_angle_between(imgh,hue) for imgh in region[:,0]])
+
+
+    # hue_mad = np.mean(np.absolute(angles_between))
+    hue_mad = np.mean(angles_between)
 
     return hue_mad
 ####

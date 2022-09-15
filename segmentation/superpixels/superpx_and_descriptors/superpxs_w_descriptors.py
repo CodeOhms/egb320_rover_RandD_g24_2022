@@ -47,7 +47,7 @@ def apply_superpx_descriptors(superpx_img, img):
 
     # Hue MAD from given hue:
     hue_mads = [2, 83, 207] # Sample, obstacle, rock
-    hue_mads = np.deg2rad(hue_mads)
+    # hue_mads = np.deg2rad(hue_mads)
     hue_mads_imgs = [gen_discriptor_img(superpx_img, img, MAD_from_hue, descr_func_args=[hue_mads[i]], descr_dims=1, img_dtype=np.float32)
     for i in range(3)
     ]
@@ -155,7 +155,7 @@ if __name__ == '__main__':
         superpx_img = create_superpx_img(img)
         descr_imgs = apply_superpx_descriptors(superpx_img, img)
         subpl_titles = ['1st Dominant Colour', '2nd Dominant Colour', 'Hue Avg.', 'Hue MAD', 'Saturation Avg.', 'Saturation MAD', 'MAD from hue of Samples', 'MAD from hue of Obstacles', 'MAD from hue of Rocks', 'Average RGB']
-        cbar_scales = [360, 1, 360, 1, 360, 360, 360]
+        cbar_scales = [360, 1, 360, 1, 180, 180, 180]
         disp_descr_imgs(subpl_titles, descr_imgs_fig, descr_imgs, cbar_scales, len(descr_imgs))
 
         if use_video:
