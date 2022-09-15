@@ -90,7 +90,7 @@ def dominant_colour_descriptor(args):
     return colours.ravel()
 
 ####
-#### Mean and std. deviation of Hue and Saturation descriptor
+#### Mean and mean absolute deviation of Hue and Saturation descriptor
 def MAD(data):
     """
     Mean Absolute Deviation.
@@ -111,7 +111,26 @@ def hs_stats_descriptor(args):
     sat_avg = region[:,1].mean()
     hue_mad = MAD(region[:,0])
     sat_mad = MAD(region[:,1])
-
-    # return (hue_avg, sat_avg, 1.0, hue_mad, sat_mad, 1.0)
+    
     return (hue_avg, sat_avg, hue_mad, sat_mad)
+
+def gen_hue_vectors(angles):
+    c_hue_vec = [np.exp(complex(0,a)) for a in angles]
+    return np.array( [[np.real(c_num),np.imag(c_num)] for c_num in c_hue_vec] )
+def MAD_from_hue(args):
+    img = args[0]
+    superpx_img_indicies = args[1]
+    hue = args[3]
+
+    img_f32 = np.float32(img)
+    img_hsv = cv.cvtColor(img_f32, cv.COLOR_RGB2HSV_FULL)
+
+    # Region as a column of HSV pairs:
+    region = get_region1d(img_hsv, superpx_img_indicies)
+    hue_vec = gen_hue_vectors(np.array([hue]))
+    img_hue_vecs = gen_hue_vectors(region[:,0])
+    angles_between = np.array( [np.rad2deg(np.arccos(np.dot(hue_vec, ihv))) for ihv in img_hue_vecs] )
+    hue_mad = np.mean(np.absolute(angles_between))
+
+    return hue_mad
 ####

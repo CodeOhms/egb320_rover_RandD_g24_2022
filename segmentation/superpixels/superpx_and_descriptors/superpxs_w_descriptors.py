@@ -45,6 +45,15 @@ def apply_superpx_descriptors(superpx_img, img):
         hsv_descr_img = hue_mean_sat_mean_hue_MAD_sat_MAD[:,:,i]
         descr_imgs.append(show_boundaries(hsv_descr_img, superpx_img, output_scale=1, output_dtype=np.float32))
 
+    # Hue MAD from given hue:
+    hue_mads = [2, 83, 207] # Sample, obstacle, rock
+    hue_mads = np.deg2rad(hue_mads)
+    hue_mads_imgs = [gen_discriptor_img(superpx_img, img, MAD_from_hue, descr_func_args=[hue_mads[i]], descr_dims=1, img_dtype=np.float32)
+    for i in range(3)
+    ]
+    for i in range(len(hue_mads)):
+        descr_imgs.append(show_boundaries(hue_mads_imgs[i][:,:,0], superpx_img, output_scale=1, output_dtype=np.float32))
+
     # Avg. RGB:
     descr_imgs.append(
         show_boundaries(gen_discriptor_img(superpx_img, img, avg_rgb_descriptor),
@@ -119,8 +128,8 @@ if __name__ == '__main__':
 
     # Display descriptor images:
         # Setup figures:
-    descr_imgs_num = 7
-    colour_maps = ['rgb', 'rgb', 'cividis', 'cividis', 'cividis', 'cividis', 'rgb']
+    descr_imgs_num = 10
+    colour_maps = ['rgb', 'rgb', 'cividis', 'cividis', 'cividis', 'cividis', 'cividis', 'cividis', 'cividis', 'rgb']
     descr_imgs_fig = None
     colour_bars = [None for i in range(descr_imgs_num)]
     if descr_imgs_num < 1:
@@ -145,9 +154,8 @@ if __name__ == '__main__':
     while(True):
         superpx_img = create_superpx_img(img)
         descr_imgs = apply_superpx_descriptors(superpx_img, img)
-        subpl_titles = ['1st Dominant Colour', '2nd Dominant Colour', 'Hue Avg.', 'Hue MAD', 'Saturation Avg.', 'Saturation MAD', 'Average RGB']
-        cbar_scales = [360, 1, 360, 1]
-        # disp_descr_imgs(superpx_img, descr_imgs_fig, descr_imgs, len(descr_imgs))
+        subpl_titles = ['1st Dominant Colour', '2nd Dominant Colour', 'Hue Avg.', 'Hue MAD', 'Saturation Avg.', 'Saturation MAD', 'MAD from hue of Samples', 'MAD from hue of Obstacles', 'MAD from hue of Rocks', 'Average RGB']
+        cbar_scales = [360, 1, 360, 1, 360, 360, 360]
         disp_descr_imgs(subpl_titles, descr_imgs_fig, descr_imgs, cbar_scales, len(descr_imgs))
 
         if use_video:
