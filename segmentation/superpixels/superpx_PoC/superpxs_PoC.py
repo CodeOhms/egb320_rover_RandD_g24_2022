@@ -8,13 +8,13 @@ from skimage.segmentation import mark_boundaries
 import cv2 as cv
 # import matplotlib.pyplot as plt
 
-def superpx_slic_trans(img, num_regions=40):
+def superpx_slic_trans(img, num_regions):
     # slic = Slic(num_components=40, compactness=1, min_size_factor=0) # Supposedly gets FPS increase, but I don't see any...
     slic = Slic(num_components=num_regions, compactness=10)
-    assignment = slic.iterate(img) # Cluster Map
-    return assignment
+    segments = slic.iterate(img) # Cluster Map
+    return segments
 
-def grid_superpx_trans(img):
+def grid_superpx_trans(img, num_regions):
     n_cells_x = 15
     n_cells_y = 10
     size_x = img.shape[1]//n_cells_x
@@ -22,16 +22,16 @@ def grid_superpx_trans(img):
     print(size_x,size_y)
 
     descriptors = np.zeros((n_cells_y,n_cells_x,3))
+    segments = np.zeros_like(img)
     for y in range(n_cells_y):
         for x in range(n_cells_x):
-            region = img[y*size_y:(y+1)*size_y,x*size_x:(x+1)*size_x]
-            # labels = 
-            descriptors[y,x] = get_descr(region)
-
+            # region = img[y*size_y:(y+1)*size_y,x*size_x:(x+1)*size_x]
+            segments[y*size_y:(y+1)*size_y,x*size_x:(x+1)*size_x] = x + y*n_cells_x
+    return segments
 
 def gen_superpx_img(img, num_regions=40):
-    return superpx_slic_trans(img, num_regions)
-    # return grid_superpx_trans(img)
+    # return superpx_slic_trans(img, num_regions)
+    return grid_superpx_trans(img, num_regions)
 
 def get_region1d(img, superpx_img_indicies):
     return img[superpx_img_indicies]
