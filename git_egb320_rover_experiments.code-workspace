@@ -2,10 +2,6 @@
 	"folders": [
 		{
 			"path": "."
-		},
-		{
-			"name": "RPi:~/Documents/programming/git_egb320_rover_RandD",
-			"uri": "ponyssh:/RPi/~/Documents/programming/git_egb320_rover_RandD"
 		}
 	],
 	"settings": {}

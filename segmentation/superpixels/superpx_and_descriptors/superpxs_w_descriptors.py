@@ -47,7 +47,6 @@ def apply_superpx_descriptors(superpx_img, img):
 
     # Hue MAD from given hue:
     hue_mads = [2, 83, 207] # Sample, obstacle, rock
-    # hue_mads = np.deg2rad(hue_mads)
     hue_mads_imgs = [gen_discriptor_img(superpx_img, img, MAD_from_hue, descr_func_args=[hue_mads[i]], descr_dims=1, img_dtype=np.float32)
     for i in range(3)
     ]
