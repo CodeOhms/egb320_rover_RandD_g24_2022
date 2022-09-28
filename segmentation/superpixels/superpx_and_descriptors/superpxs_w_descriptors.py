@@ -121,7 +121,7 @@ if __name__ == '__main__':
         img = grab_frame(capture)
         plt.ion()
     else:
-        img = skio.imread(imgs_dir+'test_img_0.jpg')
+        img = skio.imread(imgs_dir+'test_img_2.jpg')
 
     plt.tight_layout()
 

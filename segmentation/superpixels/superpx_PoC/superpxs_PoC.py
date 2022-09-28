@@ -60,7 +60,6 @@ def PoC(capture, cam_res):
     sat_deviation = 0.15
     sat_mid_gb = 0.8125
     sat_range_gb = np.array([round(255*(sat_mid_gb-sat_deviation)), round(255*(sat_mid_gb+sat_deviation))], dtype=np.uint8)
-    # sat_range_gb = np.array([128, 255], dtype=np.uint8)
 
     frame = grab_frame(capture, cam_res)
 
