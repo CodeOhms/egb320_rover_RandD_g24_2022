@@ -1,11 +1,14 @@
 import time
 import numpy as np
+import numexpr as ne
 from imutils.video import VideoStream
 from skimage import segmentation
 #from fast_slic import Slic
 from fast_slic.neon import SlicNeon as Slic
 from skimage.segmentation import mark_boundaries
 import cv2 as cv
+# from scipy.spatial import distance
+from scipy.spatial.distance import cdist
 # import matplotlib.pyplot as plt
 
 def superpx_slic_trans(img, num_regions):
@@ -30,8 +33,8 @@ def grid_superpx_trans(img, num_regions):
     return segments
 
 def gen_superpx_img(img, num_regions=40):
-    # return superpx_slic_trans(img, num_regions)
-    return grid_superpx_trans(img, num_regions)
+    return superpx_slic_trans(img, num_regions)
+    # return grid_superpx_trans(img, num_regions)
 
 def get_region1d(img, superpx_img_indicies):
     return img[superpx_img_indicies]
@@ -42,24 +45,37 @@ def smallest_angle_between(angles0, angles1):
     distance = phi
     if phi > 180:
         distance = 360 - phi
-    # print('angles')
-    # print(angles0, angles1, distance)
-    # print()
     return distance
 
-def MAD_from_hue(args):
-    img_hsv = args[0]
+# def MAD_from_hue(args):
+#     img_hsv = args[0]
+#     superpx_img_indicies = args[1]
+#     hue = args[3]
+
+#     # Region as a column of HSV pairs:
+#     region = get_region1d(img_hsv, superpx_img_indicies)
+#     angles_between = np.array([smallest_angle_between(hue_px, hue) for hue_px in region[:,0]])
+#     # hue_mad = np.mean(angles_between)
+#     # hue_mad = np.median(angles_between)
+#     hue_mad = np.quantile(angles_between, 0.25)
+
+#     return hue_mad
+
+def hue_sat_manhattan(args):
+    img_comp = args[0]
     superpx_img_indicies = args[1]
-    hue = args[3]
+    hue_sat_vec = args[3]
+    # hue, sat = args[3]
+    # hue_sat_comp = complex(hue, sat)
+    # hue_sat_vec = np.array([hue_sat_comp.real, hue_sat_comp,imag])
 
     # Region as a column of HSV pairs:
-    region = get_region1d(img_hsv, superpx_img_indicies)
-    angles_between = np.array([smallest_angle_between(hue_px, hue) for hue_px in region[:,0]])
-    # hue_mad = np.mean(angles_between)
-    # hue_mad = np.median(angles_between)
-    hue_mad = np.quantile(angles_between, 0.25)
+    region = get_region1d(img_comp, superpx_img_indicies)
+    # mhdist_between = np.array([distance.cityblock([hue, hue_sat_px[0]], [sat, hue_sat_px[1]]) for hue_sat_px in region[:,0:1]])
+    mhdist_between = cdist(hue_sat_vec, region, metric='cityblock')
+    hue_sat_q = np.quantile(mhdist_between, 0.25)
 
-    return hue_mad
+    return hue_sat_q
 
 def gen_discriptor_img(superpx_img, img, descr_func, img_dtype=None, descr_func_args=[None], descr_dims=3):
     if img_dtype == None:
@@ -95,13 +111,16 @@ def PoC(capture, cam_res):
 
     num_classes = 3 # Sample, obstacle, rock
 
-    sat_deviations = [0.15, 0.15, 0.15]
+    # sat_deviations = [0.15, 0.15, 0.15]
     sat_mids = [0.02, 0.7, 0.85]
-    sat_ranges = np.array([
-        [sat_mids[i] - sat_deviations[i], sat_mids[i] + sat_deviations[i]] for i in range(num_classes)
-    ])
+    # sat_ranges = np.array([
+    #     [sat_mids[i] - sat_deviations[i], sat_mids[i] + sat_deviations[i]] for i in range(num_classes)
+    # ])
     # hue_mads = [200, 320, 87] # Rock, sample, obstacle
-    hue_mads = [2, 110, 207] # Sample, obstacle, rock
+    # Hues (in degrees): 2, 110, 207
+    hue_mids = [0.03490658503988659154, 1.91986217719376253462, 3.61283155162826222423] # Sample, obstacle, rock
+    sat_hue_cnums = ne.evaluate('sat_mids*exp(complex(0,hue_mids))')
+    sat_hue_vecs = np.array([[hsm_comp.real, hsm_comp.imag] for hsm_comp in sat_hue_cnums])
 
     frame = grab_frame(capture, cam_res)
 
@@ -132,12 +151,19 @@ def PoC(capture, cam_res):
     # Apply descriptors:
         frame_f32 = np.float32(frame)
         frame_hsv = cv.cvtColor(frame_f32, cv.COLOR_BGR2HSV_FULL)
+        frame_hue = frame_hsv[:,:,0]
         frame_sat = frame_hsv[:,:,1]
+        frame_comp = ne.evaluate('frame_sat*exp(complex(0,frame_hue))')
+        frame_vecs = np.array([[[comp.real,comp.imag] for comp in row] for row in frame_comp[:]])
 
         # Hue MAD from given hue:
-        hue_mads_imgs_and_decrs = np.array([gen_discriptor_img(superpx_img, frame_hsv, MAD_from_hue, descr_func_args=[hue_mads[i]], descr_dims=1, img_dtype=np.float32)
+        # hue_mads_imgs_and_decrs = np.array([gen_discriptor_img(superpx_img, frame_hsv, MAD_from_hue, descr_func_args=[hue_mads[i]], descr_dims=1, img_dtype=np.float32)
+        #     for i in range(num_classes)
+        # ])
+        hue_mads_imgs_and_decrs = np.array([gen_discriptor_img(superpx_img, frame_vecs, hue_sat_manhattan, descr_func_args=[np.array([ sat_hue_vecs[i] ])], descr_dims=1, img_dtype=np.float32)
             for i in range(num_classes)
         ])
+        
         # hue_mad_imgs = np.array([gen_discriptor_img(superpx_img, frame_hsv, MAD_from_hue, descr_func_args=[hue_mads[i]], descr_dims=1, img_dtype=np.float32)
         #     for i in range(num_classes)
         # ])
