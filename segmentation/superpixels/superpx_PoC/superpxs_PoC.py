@@ -112,13 +112,13 @@ def PoC(capture, cam_res):
     num_classes = 3 # Sample, obstacle, rock
 
     # sat_deviations = [0.15, 0.15, 0.15]
-    sat_mids = [0.02, 0.7, 0.85]
+    sat_mids = [0.02, 0.73, 1.0]
     # sat_ranges = np.array([
     #     [sat_mids[i] - sat_deviations[i], sat_mids[i] + sat_deviations[i]] for i in range(num_classes)
     # ])
     # hue_mads = [200, 320, 87] # Rock, sample, obstacle
     # Hues (in degrees): 2, 110, 207
-    hue_mids = [0.03490658503988659154, 1.91986217719376253462, 3.61283155162826222423] # Sample, obstacle, rock
+    hue_mids = [0.03490658503988659154, 1.65806278939461309808, 3.56047167406843233692] # Sample, obstacle, rock
     sat_hue_cnums = ne.evaluate('sat_mids*exp(complex(0,hue_mids))')
     sat_hue_vecs = np.array([[hsm_comp.real, hsm_comp.imag] for hsm_comp in sat_hue_cnums])
 
@@ -153,7 +153,8 @@ def PoC(capture, cam_res):
         frame_hsv = cv.cvtColor(frame_f32, cv.COLOR_BGR2HSV_FULL)
         frame_hue = frame_hsv[:,:,0]
         frame_sat = frame_hsv[:,:,1]
-        frame_comp = ne.evaluate('frame_sat*exp(complex(0,frame_hue))')
+        pi = np.pi
+        frame_comp = ne.evaluate('frame_sat*exp(complex(0,frame_hue*pi/180))')
         frame_vecs = np.array([[[comp.real,comp.imag] for comp in row] for row in frame_comp[:]])
 
         # Hue MAD from given hue:
@@ -176,7 +177,7 @@ def PoC(capture, cam_res):
         hue_mad_descrs = hue_mads_imgs_and_decrs[:,1]
 
     # Select descriptors to mask objects:
-        mad_threshold = 30
+        mad_threshold = 0.1
         hue_mad_regions = np.zeros((1,3))
         hue_mad_labels = hue_mad_descrs
         for i_reg, reg_label in enumerate(np.unique(superpx_img)):
