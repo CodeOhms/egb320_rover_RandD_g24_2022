@@ -24,8 +24,8 @@ def grid_superpx_trans(img, num_regions):
     size_y = img.shape[0]//n_cells_y
     print(size_x,size_y)
 
-    descriptors = np.zeros((n_cells_y,n_cells_x,3))
-    segments = np.zeros_like(img)
+    # descriptors = np.zeros((n_cells_y,n_cells_x,3))
+    segments = np.zeros(img.shape[:2], dtype=int)
     for y in range(n_cells_y):
         for x in range(n_cells_x):
             # region = img[y*size_y:(y+1)*size_y,x*size_x:(x+1)*size_x]
@@ -33,8 +33,8 @@ def grid_superpx_trans(img, num_regions):
     return segments
 
 def gen_superpx_img(img, num_regions=40):
-    return superpx_slic_trans(img, num_regions)
-    # return grid_superpx_trans(img, num_regions)
+    # return superpx_slic_trans(img, num_regions)
+    return grid_superpx_trans(img, num_regions)
 
 def get_region1d(img, superpx_img_indicies):
     return img[superpx_img_indicies]
@@ -177,7 +177,7 @@ def PoC(capture, cam_res):
         hue_mad_descrs = hue_mads_imgs_and_decrs[:,1]
 
     # Select descriptors to mask objects:
-        mad_threshold = 0.1
+        mad_threshold = 0.15
         hue_mad_regions = np.zeros((1,3))
         hue_mad_labels = hue_mad_descrs
         for i_reg, reg_label in enumerate(np.unique(superpx_img)):
