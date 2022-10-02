@@ -24,54 +24,27 @@ def grid_superpx_trans(img, num_regions):
     size_y = img.shape[0]//n_cells_y
     print(size_x,size_y)
 
-    # descriptors = np.zeros((n_cells_y,n_cells_x,3))
     segments = np.zeros(img.shape[:2], dtype=int)
     for y in range(n_cells_y):
         for x in range(n_cells_x):
-            # region = img[y*size_y:(y+1)*size_y,x*size_x:(x+1)*size_x]
             segments[y*size_y:(y+1)*size_y,x*size_x:(x+1)*size_x] = x + y*n_cells_x
     return segments
 
 def gen_superpx_img(img, num_regions=40):
-    # return superpx_slic_trans(img, num_regions)
     return grid_superpx_trans(img, num_regions)
 
 def get_region1d(img, superpx_img_indicies):
     return img[superpx_img_indicies]
 
-def smallest_angle_between(angles0, angles1):
-# https://stackoverflow.com/questions/7570808/how-do-i-calculate-the-difference-of-two-angle-measures
-    phi = np.abs(angles1 - angles0) % 360
-    distance = phi
-    if phi > 180:
-        distance = 360 - phi
-    return distance
-
-# def MAD_from_hue(args):
-#     img_hsv = args[0]
-#     superpx_img_indicies = args[1]
-#     hue = args[3]
-
-#     # Region as a column of HSV pairs:
-#     region = get_region1d(img_hsv, superpx_img_indicies)
-#     angles_between = np.array([smallest_angle_between(hue_px, hue) for hue_px in region[:,0]])
-#     # hue_mad = np.mean(angles_between)
-#     # hue_mad = np.median(angles_between)
-#     hue_mad = np.quantile(angles_between, 0.25)
-
-#     return hue_mad
-
 def hue_sat_manhattan(args):
     img_comp = args[0]
     superpx_img_indicies = args[1]
     hue_sat_vec = args[3]
-    # hue, sat = args[3]
-    # hue_sat_comp = complex(hue, sat)
-    # hue_sat_vec = np.array([hue_sat_comp.real, hue_sat_comp,imag])
 
     # Region as a column of HSV pairs:
+        # print('hue_mad_imgs shape')
+        # print(hue_mad_imgs.shape)
     region = get_region1d(img_comp, superpx_img_indicies)
-    # mhdist_between = np.array([distance.cityblock([hue, hue_sat_px[0]], [sat, hue_sat_px[1]]) for hue_sat_px in region[:,0:1]])
     mhdist_between = cdist(hue_sat_vec, region, metric='cityblock')
     hue_sat_q = np.quantile(mhdist_between, 0.25)
 
@@ -90,11 +63,9 @@ def gen_discriptor_img(superpx_img, img, descr_func, img_dtype=None, descr_func_
         im_descriptors[superpx_img==i] = descriptors[i]
 
     return (im_descriptors, descriptors)
-    # return im_descriptors
 
 def grab_frame(capture, res):
     frame = capture.read()
-    # frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
     return frame
 
 loop = True
@@ -104,19 +75,10 @@ def on_close():
 
 def PoC(capture, cam_res):
     global loop
-    
-    # sat_deviation = 0.15
-    # sat_mid_gb = 0.8125
-    # sat_range_gb = np.array([round(255*(sat_mid_gb-sat_deviation)), round(255*(sat_mid_gb+sat_deviation))], dtype=np.uint8)
 
     num_classes = 3 # Sample, obstacle, rock
 
-    # sat_deviations = [0.15, 0.15, 0.15]
     sat_mids = [0.02, 0.73, 1.0]
-    # sat_ranges = np.array([
-    #     [sat_mids[i] - sat_deviations[i], sat_mids[i] + sat_deviations[i]] for i in range(num_classes)
-    # ])
-    # hue_mads = [200, 320, 87] # Rock, sample, obstacle
     # Hues (in degrees): 2, 110, 207
     hue_mids = [0.03490658503988659154, 1.65806278939461309808, 3.56047167406843233692] # Sample, obstacle, rock
     sat_hue_cnums = ne.evaluate('sat_mids*exp(complex(0,hue_mids))')
@@ -158,22 +120,10 @@ def PoC(capture, cam_res):
         frame_vecs = np.array([[[comp.real,comp.imag] for comp in row] for row in frame_comp[:]])
 
         # Hue MAD from given hue:
-        # hue_mads_imgs_and_decrs = np.array([gen_discriptor_img(superpx_img, frame_hsv, MAD_from_hue, descr_func_args=[hue_mads[i]], descr_dims=1, img_dtype=np.float32)
-        #     for i in range(num_classes)
-        # ])
         hue_mads_imgs_and_decrs = np.array([gen_discriptor_img(superpx_img, frame_vecs, hue_sat_manhattan, descr_func_args=[np.array([ sat_hue_vecs[i] ])], descr_dims=1, img_dtype=np.float32)
             for i in range(num_classes)
         ])
-        
-        # hue_mad_imgs = np.array([gen_discriptor_img(superpx_img, frame_hsv, MAD_from_hue, descr_func_args=[hue_mads[i]], descr_dims=1, img_dtype=np.float32)
-        #     for i in range(num_classes)
-        # ])
-        # hue_mad_imgs, hue_mad_descrs = hue_mads_imgs_and_decrs
-        # print('hue_mads_imgs_and_decrs shape')
-        # print(hue_mads_imgs_and_decrs.shape)
         hue_mad_imgs = hue_mads_imgs_and_decrs[:,0]
-        # print('hue_mad_imgs shape')
-        # print(hue_mad_imgs.shape)
         hue_mad_descrs = hue_mads_imgs_and_decrs[:,1]
 
     # Select descriptors to mask objects:
