@@ -80,6 +80,10 @@ def PoC(capture, cam_res):
     sat_hue_vecs = np.array([[hsm_comp.real, hsm_comp.imag] for hsm_comp in sat_hue_cnums])
 
     frame = grab_frame(capture, cam_res)
+    f_scale = 4
+
+    f_height = frame.shape[0]
+    f_width = frame.shape[1]
 
     prev_frame_time = 0
     new_frame_time = 0
@@ -142,7 +146,9 @@ def PoC(capture, cam_res):
             #     print()
     
     # Find contours:
-        contours_imgs = [np.copy(frame) for x in range(num_classes)]
+        f_upscale = cv.resize(np.copy(frame), dsize=None, fx=f_scale, fy=f_scale, interpolation= cv.INTER_LINEAR) # Upscale for display!
+        contours_imgs = [np.copy(f_upscale) for x in range(num_classes)]
+        # contours_imgs = [np.copy(frame) for x in range(num_classes)]
         hulls_lists = [[ ] for x in range(num_classes)]
         contours = [ ]
         for m_i in range(num_classes):
@@ -152,10 +158,34 @@ def PoC(capture, cam_res):
             for cnt in conts:
                 hulls = cv.convexHull(cnt)
                 hulls_lists[m_i].append(hulls)
-            cv.drawContours(contours_imgs[m_i], hulls_lists[m_i], -1, (250,0,255), 2) # magenta
+            cv.drawContours(contours_imgs[m_i], np.multiply(f_scale, hulls_lists[m_i]), -1, (250,0,255), 2) # magenta
+    
+    # Correct for distortions:
+
+    # Estimate bearing:
+        fov = [62.2, 48.8]
+        moments = [ ]
+        cen_x = [[ ] for x in range(num_classes)]
+        bearings = [[ ] for x in range(num_classes)]
+        for ih_i, img_hulls in enumerate(hulls_lists):
+            for hull in img_hulls:
+                # try: # may not be any detected contours!
+                moments.append(cv.moments(hull))
+                cx = int(moments[-1]['m10']/moments[-1]['m00'])
+                cy = int(moments[-1]['m01']/moments[-1]['m00'])
+                scaled_cen = (cx*f_scale,cy*f_scale)
+                contours_imgs[ih_i] = cv.circle(contours_imgs[ih_i], scaled_cen, radius=1, color=(0, 0, 255), thickness=-1)
+                cen_x[ih_i].append(cx)
+                bearing = (cx-f_width/2)/f_width*fov[0]
+                bearings[ih_i].append(bearing)
+                cv.putText(contours_imgs[ih_i], "B: "+str(bearing), scaled_cen, font, 0.3, (255,255,255), 1, cv.LINE_AA)
+
+    # Estimate distance:
         
 
     # Display results:
+        # resized_up = cv.resize(contours_imgs[1], (192,96), interpolation= cv.INTER_LINEAR)
+        # cv.imshow("asdf", resized_up)
         cv.imshow("Frame", frame)
         cv.imshow("Sample hue mask", masks_hue[:,:,0])
         cv.imshow("Obstacle hue mask", masks_hue[:,:,1])
