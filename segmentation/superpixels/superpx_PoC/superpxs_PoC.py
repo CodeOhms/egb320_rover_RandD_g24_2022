@@ -2,14 +2,10 @@ import time
 import numpy as np
 import numexpr as ne
 from imutils.video import VideoStream
-from skimage import segmentation
 #from fast_slic import Slic
 from fast_slic.neon import SlicNeon as Slic
-from skimage.segmentation import mark_boundaries
 import cv2 as cv
-# from scipy.spatial import distance
 from scipy.spatial.distance import cdist
-# import matplotlib.pyplot as plt
 
 def superpx_slic_trans(img, num_regions):
     # slic = Slic(num_components=40, compactness=1, min_size_factor=0) # Supposedly gets FPS increase, but I don't see any...
@@ -18,11 +14,10 @@ def superpx_slic_trans(img, num_regions):
     return segments
 
 def grid_superpx_trans(img, num_regions):
-    n_cells_x = 15
-    n_cells_y = 10
+    n_cells_x = 16
+    n_cells_y = 8
     size_x = img.shape[1]//n_cells_x
     size_y = img.shape[0]//n_cells_y
-    print(size_x,size_y)
 
     segments = np.zeros(img.shape[:2], dtype=int)
     for y in range(n_cells_y):
@@ -31,6 +26,7 @@ def grid_superpx_trans(img, num_regions):
     return segments
 
 def gen_superpx_img(img, num_regions=40):
+    # return superpx_slic_trans(img, num_regions)
     return grid_superpx_trans(img, num_regions)
 
 def get_region1d(img, superpx_img_indicies):
@@ -42,11 +38,10 @@ def hue_sat_manhattan(args):
     hue_sat_vec = args[3]
 
     # Region as a column of HSV pairs:
-        # print('hue_mad_imgs shape')
-        # print(hue_mad_imgs.shape)
     region = get_region1d(img_comp, superpx_img_indicies)
     mhdist_between = cdist(hue_sat_vec, region, metric='cityblock')
-    hue_sat_q = np.quantile(mhdist_between, 0.25)
+    # hue_sat_q = np.quantile(mhdist_between, 0.25)
+    hue_sat_q = np.mean(mhdist_between)
 
     return hue_sat_q
 
@@ -127,7 +122,8 @@ def PoC(capture, cam_res):
         hue_mad_descrs = hue_mads_imgs_and_decrs[:,1]
 
     # Select descriptors to mask objects:
-        mad_threshold = 0.15
+        # mad_threshold = 0.15
+        mad_threshold = 1.0
         hue_mad_regions = np.zeros((1,3))
         hue_mad_labels = hue_mad_descrs
         for i_reg, reg_label in enumerate(np.unique(superpx_img)):
@@ -135,42 +131,38 @@ def PoC(capture, cam_res):
             reg_idxs = superpx_img == reg_label
 
             hue_img_idx = np.argmin(hue_mad_regions)
-            print('region index', str(i_reg))
-            print()
+            # print('region index', str(i_reg))
+            # print()
             if hue_mad_regions[hue_img_idx] < mad_threshold:
-                print(hue_mad_regions[hue_img_idx])
-                print()
+                # print(hue_mad_regions[hue_img_idx])
+                # print()
                 masks_hue[:,:,hue_img_idx][reg_idxs] = 255
-            else:
-                print('Skipped ', str(hue_mad_regions[hue_img_idx]))
-                print()
+            # else:
+            #     print('Skipped ', str(hue_mad_regions[hue_img_idx]))
+            #     print()
     
-    # # Find contours:
-    #     contours, hierarchy = cv.findContours(mask_gb, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-
-    # # Find the convex hull object for each contour:
-    #     hull_list = []
-    #     for i in range(len(contours)):
-    #        hull = cv.convexHull(contours[i])
-    #        hull_list.append(hull)
-
-    # # Draw contours + hull results
-    #     contours_img = np.copy(frame)
-    #     cv.drawContours(contours_img, contours, -1, (5,255,0), 2) # Bright green
-    #     cv.drawContours(contours_img, hull_list, -1, (250,0,255), 2) # Pink/purple
+    # Find contours:
+        contours_imgs = [np.copy(frame) for x in range(num_classes)]
+        hulls_lists = [[ ] for x in range(num_classes)]
+        contours = [ ]
+        for m_i in range(num_classes):
+            conts, _ = cv.findContours(masks_hue[:,:,m_i], cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+            contours.append(conts)
+        # Find the convex hull object for each contour, and draw hulls:
+            for cnt in conts:
+                hulls = cv.convexHull(cnt)
+                hulls_lists[m_i].append(hulls)
+            cv.drawContours(contours_imgs[m_i], hulls_lists[m_i], -1, (250,0,255), 2) # magenta
+        
 
     # Display results:
         cv.imshow("Frame", frame)
         cv.imshow("Sample hue mask", masks_hue[:,:,0])
         cv.imshow("Obstacle hue mask", masks_hue[:,:,1])
         cv.imshow("Rock hue mask", masks_hue[:,:,2])
-        # cv.imshow("Sample hue mask", masks_objs[:,:,0])
-        # cv.imshow("Obstacle hue mask", masks_objs[:,:,1])
-        # cv.imshow("Rock hue mask", masks_objs[:,:,2])
-        # cv.imshow("Saturation mask", mask_sat_gb)
-        # cv.imshow("Superpixels", mark_boundaries(frame, superpx_img))
-        # cv.imshow("Masked", masked_gb)
-        # cv.imshow("Contours", contours_img)
+        cv.imshow("Sample contours", contours_imgs[0])
+        cv.imshow("Obstacle contours", contours_imgs[1])
+        cv.imshow("Rock contours", contours_imgs[2])
         key = cv.waitKey(1) & 0xFF
         #if the `q` key was pressed, break from the loop
         if key == ord("q"):
@@ -188,7 +180,7 @@ def PoC(capture, cam_res):
 def init_camera(camera):
 # https://picamera.readthedocs.io/en/release-1.13/recipes1.html#capturing-consistent-images
     # Set ISO to the desired value
-    camera.iso = 800
+    camera.iso = 1000
     # Wait for the automatic gain control to settle
     time.sleep(2)
     # Now fix the values
@@ -201,8 +193,8 @@ def init_camera(camera):
 if __name__ == "__main__":
     # initialize the video stream and allow the cammera sensor to warmup
     # Vertical res must be multiple of 16, and horizontal a multiple of 32
-    cam_res = (128, 64)
-    video_stream = VideoStream(usePiCamera=True, resolution=cam_res, framerate=20, ).start()
+    cam_res = (64, 32)
+    video_stream = VideoStream(usePiCamera=True, resolution=cam_res).start()
     print("Camera warming up...")
     init_camera(video_stream.camera)
     
