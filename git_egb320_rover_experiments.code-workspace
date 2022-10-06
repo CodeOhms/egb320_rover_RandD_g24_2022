@@ -4,8 +4,8 @@
 			"path": "."
 		},
 		{
-			"name": "RPi:~/Documents/programming/git_egb320_rover_RandD",
-			"uri": "ponyssh:/RPi/~/Documents/programming/git_egb320_rover_RandD"
+			"name": "RPi:~/programming/egb320_rover_RandD_g24_2022",
+			"uri": "ponyssh:/RPi/~/programming/egb320_rover_RandD_g24_2022"
 		}
 	],
 	"settings": {}
