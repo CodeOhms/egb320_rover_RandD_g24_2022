@@ -1,33 +1,37 @@
+import os
+from inspect import getsourcefile
 import time
 import numpy as np
 import numexpr as ne
 from imutils.video import VideoStream
 #from fast_slic import Slic
-from fast_slic.neon import SlicNeon as Slic
+# from fast_slic.neon import SlicNeon as Slic
 import cv2 as cv
 from scipy.spatial.distance import cdist
+# from scipy.spatial.distance import jaccard
+from sklearn.metrics import jaccard_score
 
-def superpx_slic_trans(img, num_regions):
+def superpx_slic_trans(img, num_regions=40):
     # slic = Slic(num_components=40, compactness=1, min_size_factor=0) # Supposedly gets FPS increase, but I don't see any...
     slic = Slic(num_components=num_regions, compactness=10)
     segments = slic.iterate(img) # Cluster Map
     return segments
 
-def grid_superpx_trans(img, num_regions):
-    n_cells_x = 16
-    n_cells_y = 8
-    size_x = img.shape[1]//n_cells_x
-    size_y = img.shape[0]//n_cells_y
-
+def grid_superpx_trans(img, regions_props):
+    n_cells_x = regions_props[0]
+    n_cells_y = regions_props[1]
+    size_x = regions_props[2]
+    size_y = regions_props[3]
+    
     segments = np.zeros(img.shape[:2], dtype=int)
     for y in range(n_cells_y):
         for x in range(n_cells_x):
             segments[y*size_y:(y+1)*size_y,x*size_x:(x+1)*size_x] = x + y*n_cells_x
     return segments
 
-def gen_superpx_img(img, num_regions=40):
-    # return superpx_slic_trans(img, num_regions)
-    return grid_superpx_trans(img, num_regions)
+def gen_superpx_img(img, regions_props):
+    # return superpx_slic_trans(img, regions_props)
+    return grid_superpx_trans(img, regions_props)
 
 def get_region1d(img, superpx_img_indicies):
     return img[superpx_img_indicies]
@@ -44,6 +48,16 @@ def hue_sat_manhattan(args):
     hue_sat_q = np.mean(mhdist_between)
 
     return hue_sat_q
+
+def jaccard_descriptor(args):
+    img = args[0]
+    superpx_img_indicies = args[1]
+    compare_img = args[3]
+    region = get_region1d(img, superpx_img_indicies).ravel()
+    
+    # jac_score = jaccard(compare_img, region)
+    jac_score = jaccard_score(compare_img, region, average='macro')
+    return jac_score
 
 def gen_discriptor_img(superpx_img, img, descr_func, img_dtype=None, descr_func_args=[None], descr_dims=3):
     if img_dtype == None:
@@ -68,7 +82,7 @@ def on_close():
     global loop
     loop = False
 
-def PoC(capture, cam_res):
+def PoC(capture, cam_res, imgs_dir):
     global loop
 
     num_classes = 3 # Sample, obstacle, rock
@@ -99,7 +113,20 @@ def PoC(capture, cam_res):
     masks_objs = np.zeros(masks_shape, dtype=np.uint8)
     frame_masked_objs = np.zeros(masks_shape)
 
-    num_regions = 25
+    # num_regions = 25
+    regions_properties = [16, 8, 0, 0]
+    regions_shape = [f_width//regions_properties[0], f_height//regions_properties[1]]
+    regions_properties[2:] = regions_shape
+    # n_cells_x = 16
+    # n_cells_y = 8
+    # size_x = img.shape[1]//n_cells_x
+    # size_y = img.shape[0]//n_cells_y
+    jacc_imgs = [cv.imread(imgs_dir+'sample.png', cv.IMREAD_COLOR), cv.imread(imgs_dir+'obstacle.png', cv.IMREAD_COLOR), cv.imread(imgs_dir+'rock.png', cv.IMREAD_COLOR)]
+    jacc_comp_imgs = [ ]
+    for j_img in jacc_imgs:
+        if j_img.shape != regions_shape:
+            j_img = cv.resize(j_img, regions_shape)
+        jacc_comp_imgs.append(j_img.ravel())
     while(loop):
         new_frame_time = time.time()
         
@@ -107,43 +134,65 @@ def PoC(capture, cam_res):
         frame = grab_frame(capture, cam_res)
 
     # Create superpixel image:
-        superpx_img = gen_superpx_img(frame, num_regions)
+        # superpx_img = gen_superpx_img(frame, num_regions)
+        superpx_img = gen_superpx_img(frame, regions_properties)
 
     # Apply descriptors:
         frame_f32 = np.float32(frame)
         frame_hsv = cv.cvtColor(frame_f32, cv.COLOR_BGR2HSV_FULL)
         frame_hue = frame_hsv[:,:,0]
         frame_sat = frame_hsv[:,:,1]
-        pi = np.pi
-        frame_comp = ne.evaluate('frame_sat*exp(complex(0,frame_hue*pi/180))')
-        frame_vecs = np.array([[[comp.real,comp.imag] for comp in row] for row in frame_comp[:]])
+        # pi = np.pi
+        # frame_comp = ne.evaluate('frame_sat*exp(complex(0,frame_hue*pi/180))')
+        # frame_vecs = np.array([[[comp.real,comp.imag] for comp in row] for row in frame_comp[:]])
 
         # Hue MAD from given hue:
-        hue_mads_imgs_and_decrs = np.array([gen_discriptor_img(superpx_img, frame_vecs, hue_sat_manhattan, descr_func_args=[np.array([ sat_hue_vecs[i] ])], descr_dims=1, img_dtype=np.float32)
+        # hue_mads_imgs_and_decrs = np.array([gen_discriptor_img(superpx_img, frame_vecs, hue_sat_manhattan, descr_func_args=[np.array([ sat_hue_vecs[i] ])], descr_dims=1, img_dtype=np.float32)
+        #     for i in range(num_classes)
+        # ])
+        hue_mads_imgs_and_decrs = np.array([gen_discriptor_img(superpx_img, frame, jaccard_descriptor, descr_func_args=[jacc_comp_imgs[i]], descr_dims=1, img_dtype=np.float32)
             for i in range(num_classes)
         ])
         hue_mad_imgs = hue_mads_imgs_and_decrs[:,0]
         hue_mad_descrs = hue_mads_imgs_and_decrs[:,1]
 
     # Select descriptors to mask objects:
-        # mad_threshold = 0.15
-        mad_threshold = 1.0
+        mad_threshold = 5.0
         hue_mad_regions = np.zeros((1,3))
         hue_mad_labels = hue_mad_descrs
         for i_reg, reg_label in enumerate(np.unique(superpx_img)):
-            hue_mad_regions = np.array([hmad_lab[i_reg] for hmad_lab in hue_mad_labels])
+            hue_mad_regions = np.array([hmad_lab[i_reg]**-2 for hmad_lab in hue_mad_labels])
             reg_idxs = superpx_img == reg_label
 
-            hue_img_idx = np.argmin(hue_mad_regions)
-            # print('region index', str(i_reg))
-            # print()
-            if hue_mad_regions[hue_img_idx] < mad_threshold:
-                # print(hue_mad_regions[hue_img_idx])
-                # print()
+            hue_img_idx = np.argmax(hue_mad_regions)
+            print('region index', str(i_reg))
+            print()
+            if hue_mad_regions[hue_img_idx] > mad_threshold:
+                print(hue_mad_regions[hue_img_idx])
+                print()
                 masks_hue[:,:,hue_img_idx][reg_idxs] = 255
-            # else:
-            #     print('Skipped ', str(hue_mad_regions[hue_img_idx]))
-            #     print()
+            else:
+                print('Skipped ', str(hue_mad_regions[hue_img_idx]))
+                print()
+    
+        # # mad_threshold = 0.15
+        # mad_threshold = 1.0
+        # hue_mad_regions = np.zeros((1,3))
+        # hue_mad_labels = hue_mad_descrs
+        # for i_reg, reg_label in enumerate(np.unique(superpx_img)):
+        #     hue_mad_regions = np.array([hmad_lab[i_reg] for hmad_lab in hue_mad_labels])
+        #     reg_idxs = superpx_img == reg_label
+
+        #     hue_img_idx = np.argmin(hue_mad_regions)
+        #     # print('region index', str(i_reg))
+        #     # print()
+        #     if hue_mad_regions[hue_img_idx] < mad_threshold:
+        #         # print(hue_mad_regions[hue_img_idx])
+        #         # print()
+        #         masks_hue[:,:,hue_img_idx][reg_idxs] = 255
+        #     # else:
+        #     #     print('Skipped ', str(hue_mad_regions[hue_img_idx]))
+        #     #     print()
     
     # Find contours:
         f_upscale = cv.resize(np.copy(frame), dsize=None, fx=f_scale, fy=f_scale, interpolation= cv.INTER_LINEAR) # Upscale for display!
@@ -184,8 +233,6 @@ def PoC(capture, cam_res):
         
 
     # Display results:
-        # resized_up = cv.resize(contours_imgs[1], (192,96), interpolation= cv.INTER_LINEAR)
-        # cv.imshow("asdf", resized_up)
         cv.imshow("Frame", frame)
         cv.imshow("Sample hue mask", masks_hue[:,:,0])
         cv.imshow("Obstacle hue mask", masks_hue[:,:,1])
@@ -210,7 +257,7 @@ def PoC(capture, cam_res):
 def init_camera(camera):
 # https://picamera.readthedocs.io/en/release-1.13/recipes1.html#capturing-consistent-images
     # Set ISO to the desired value
-    camera.iso = 1000
+    camera.iso = 1400
     # Wait for the automatic gain control to settle
     time.sleep(2)
     # Now fix the values
@@ -221,14 +268,20 @@ def init_camera(camera):
     camera.awb_gains = g
 
 if __name__ == "__main__":
+    # Set the working directory to the root folder of the R&D git repo:
+    script_dir = os.path.dirname(getsourcefile(lambda:0))
+    os.chdir(script_dir)
+    os.chdir('../../../')
+    imgs_dir = 'segmentation/superpixels/superpx_PoC/'
+
     # initialize the video stream and allow the cammera sensor to warmup
     # Vertical res must be multiple of 16, and horizontal a multiple of 32
     cam_res = (64, 32)
-    video_stream = VideoStream(usePiCamera=True, resolution=cam_res).start()
+    video_stream = VideoStream(usePiCamera=True, resolution=cam_res, rotation=180).start()
     print("Camera warming up...")
     init_camera(video_stream.camera)
     
-    PoC(video_stream, cam_res)
+    PoC(video_stream, cam_res, imgs_dir)
     
     cv.destroyAllWindows()
     video_stream.stop()
