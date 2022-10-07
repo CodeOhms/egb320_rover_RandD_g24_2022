@@ -20,13 +20,11 @@ def gen_discriptor_img(superpx_img, img, descr_func, img_dtype=None, descr_func_
     if img_dtype == None:
         img_dtype = img.dtype
     
-    # descriptors = np.zeros((superpx_img.max()+1, descr_dims))
     descriptors = [ ]
     im_descriptors = np.zeros((img.shape[0], img.shape[1], descr_dims), dtype=img_dtype)
 
     for i in range(superpx_img.min(), superpx_img.max()+1):
         args = [img, superpx_img==i, descr_dims] + descr_func_args
-        # descriptors[i] = descr_func(args)
         descriptors.append(descr_func(args))
         im_descriptors[superpx_img==i] = descriptors[i]
 
@@ -134,13 +132,7 @@ def MAD_from_hue(args):
 
     # Region as a column of HSV pairs:
     region = get_region1d(img_hsv, superpx_img_indicies)
-    # hue_vec = gen_hue_vectors(np.array([hue]))
-    # img_hue_vecs = gen_hue_vectors(region[:,0])
-    # angles_between = np.array( [np.rad2deg(np.arccos(np.dot(hue_vec, ihv))) for ihv in img_hue_vecs] )
     angles_between = np.array([smallest_angle_between(imgh,hue) for imgh in region[:,0]])
-
-
-    # hue_mad = np.mean(np.absolute(angles_between))
     hue_mad = np.mean(angles_between)
 
     return hue_mad

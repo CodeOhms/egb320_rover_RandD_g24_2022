@@ -1,0 +1,12 @@
+import cv2
+import numpy as np
+
+import time
+import picamera
+
+with picamera.PiCamera() as camera:
+    camera.resolution = (1024, 768)
+    camera.start_preview()
+    # camera warmup time
+    time.sleep(2)
+    camera.capture('foo.jpg')
