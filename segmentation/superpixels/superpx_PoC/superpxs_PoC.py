@@ -8,8 +8,9 @@ from imutils.video import VideoStream
 # from fast_slic.neon import SlicNeon as Slic
 import cv2 as cv
 from scipy.spatial.distance import cdist
-# from scipy.spatial.distance import jaccard
-from sklearn.metrics import jaccard_score
+from scipy.spatial.distance import jaccard
+from scipy.spatial.distance import cosine as cos_dist
+# from sklearn.metrics import jaccard_score
 
 def superpx_slic_trans(img, num_regions=40):
     # slic = Slic(num_components=40, compactness=1, min_size_factor=0) # Supposedly gets FPS increase, but I don't see any...
@@ -53,10 +54,13 @@ def jaccard_descriptor(args):
     img = args[0]
     superpx_img_indicies = args[1]
     compare_img = args[3]
-    region = get_region1d(img, superpx_img_indicies).ravel()
-    
-    # jac_score = jaccard(compare_img, region)
-    jac_score = jaccard_score(compare_img, region, average='macro')
+    region = get_region1d(img, superpx_img_indicies)
+    reg_tup = (region[:,0].flatten(), region[:,1].flatten())
+    jac_score = 1.0
+    for chan_i in range(2):
+        jac_score *= cos_dist(compare_img[chan_i], reg_tup[chan_i])
+        # jac_score *= jaccard(compare_img[chan_i], reg_tup[chan_i])
+        # jac_score = jaccard_score(compare_img[chan_i], reg_tup[chan_i], average='macro')
     return jac_score
 
 def gen_discriptor_img(superpx_img, img, descr_func, img_dtype=None, descr_func_args=[None], descr_dims=3):
@@ -122,11 +126,15 @@ def PoC(capture, cam_res, imgs_dir):
     # size_x = img.shape[1]//n_cells_x
     # size_y = img.shape[0]//n_cells_y
     jacc_imgs = [cv.imread(imgs_dir+'sample.png', cv.IMREAD_COLOR), cv.imread(imgs_dir+'obstacle.png', cv.IMREAD_COLOR), cv.imread(imgs_dir+'rock.png', cv.IMREAD_COLOR)]
+    # jacc_comp_imgs = [None for x in range(num_classes)]
     jacc_comp_imgs = [ ]
     for j_img in jacc_imgs:
         if j_img.shape != regions_shape:
             j_img = cv.resize(j_img, regions_shape)
-        jacc_comp_imgs.append(j_img.ravel())
+        j_img = cv.cvtColor(np.float32(j_img), cv.COLOR_BGR2HSV_FULL)
+        # jacc_comp_imgs[ji_i].append( (j_img[:,:,0].flatten(), j_img[:,:,1].flatten()) )
+        jacc_comp_imgs.append( (j_img[:,:,0].flatten(), j_img[:,:,1].flatten()) )
+
     while(loop):
         new_frame_time = time.time()
         
@@ -150,49 +158,67 @@ def PoC(capture, cam_res, imgs_dir):
         # hue_mads_imgs_and_decrs = np.array([gen_discriptor_img(superpx_img, frame_vecs, hue_sat_manhattan, descr_func_args=[np.array([ sat_hue_vecs[i] ])], descr_dims=1, img_dtype=np.float32)
         #     for i in range(num_classes)
         # ])
-        hue_mads_imgs_and_decrs = np.array([gen_discriptor_img(superpx_img, frame, jaccard_descriptor, descr_func_args=[jacc_comp_imgs[i]], descr_dims=1, img_dtype=np.float32)
+        hue_mads_imgs_and_decrs = np.array([gen_discriptor_img(superpx_img, frame_hsv[:,:,:2], jaccard_descriptor, descr_func_args=[jacc_comp_imgs[i]], descr_dims=1, img_dtype=np.float32)
             for i in range(num_classes)
         ])
         hue_mad_imgs = hue_mads_imgs_and_decrs[:,0]
         hue_mad_descrs = hue_mads_imgs_and_decrs[:,1]
 
     # Select descriptors to mask objects:
-        mad_threshold = 5.0
-        hue_mad_regions = np.zeros((1,3))
-        hue_mad_labels = hue_mad_descrs
-        for i_reg, reg_label in enumerate(np.unique(superpx_img)):
-            hue_mad_regions = np.array([hmad_lab[i_reg]**-2 for hmad_lab in hue_mad_labels])
-            reg_idxs = superpx_img == reg_label
-
-            hue_img_idx = np.argmax(hue_mad_regions)
-            print('region index', str(i_reg))
-            print()
-            if hue_mad_regions[hue_img_idx] > mad_threshold:
-                print(hue_mad_regions[hue_img_idx])
-                print()
-                masks_hue[:,:,hue_img_idx][reg_idxs] = 255
-            else:
-                print('Skipped ', str(hue_mad_regions[hue_img_idx]))
-                print()
-    
-        # # mad_threshold = 0.15
-        # mad_threshold = 1.0
+        # mad_threshold = 0.5
         # hue_mad_regions = np.zeros((1,3))
         # hue_mad_labels = hue_mad_descrs
         # for i_reg, reg_label in enumerate(np.unique(superpx_img)):
         #     hue_mad_regions = np.array([hmad_lab[i_reg] for hmad_lab in hue_mad_labels])
         #     reg_idxs = superpx_img == reg_label
 
-        #     hue_img_idx = np.argmin(hue_mad_regions)
-        #     # print('region index', str(i_reg))
-        #     # print()
-        #     if hue_mad_regions[hue_img_idx] < mad_threshold:
-        #         # print(hue_mad_regions[hue_img_idx])
-        #         # print()
+        #     hue_img_idx = np.argmax(hue_mad_regions)
+        #     print('region index', str(i_reg))
+        #     print()
+        #     if hue_mad_regions[hue_img_idx] >= mad_threshold:
+        #         print(hue_mad_regions[hue_img_idx])
+        #         print()
         #         masks_hue[:,:,hue_img_idx][reg_idxs] = 255
-        #     # else:
-        #     #     print('Skipped ', str(hue_mad_regions[hue_img_idx]))
-        #     #     print()
+        #     else:
+        #         print('Skipped ', str(hue_mad_regions[hue_img_idx]))
+        #         print()
+
+        # mad_threshold = 1.0
+        # hue_mad_regions = np.zeros((1,3))
+        # hue_mad_labels = hue_mad_descrs
+        # for i_reg, reg_label in enumerate(np.unique(superpx_img)):
+        #     hue_mad_regions = np.array([hmad_lab[i_reg]**-2 for hmad_lab in hue_mad_labels])
+        #     reg_idxs = superpx_img == reg_label
+
+        #     hue_img_idx = np.argmax(hue_mad_regions)
+        #     print('region index', str(i_reg))
+        #     print()
+        #     if hue_mad_regions[hue_img_idx] > mad_threshold:
+        #         print(hue_mad_regions[hue_img_idx])
+        #         print()
+        #         masks_hue[:,:,hue_img_idx][reg_idxs] = 255
+        #     else:
+        #         print('Skipped ', str(hue_mad_regions[hue_img_idx]))
+        #         print()
+    
+        # mad_threshold = 0.15
+        mad_threshold = 1.0
+        hue_mad_regions = np.zeros((1,3))
+        hue_mad_labels = hue_mad_descrs
+        for i_reg, reg_label in enumerate(np.unique(superpx_img)):
+            hue_mad_regions = np.array([hmad_lab[i_reg] for hmad_lab in hue_mad_labels])
+            reg_idxs = superpx_img == reg_label
+
+            hue_img_idx = np.argmin(hue_mad_regions)
+            print('region index', str(i_reg))
+            print()
+            if hue_mad_regions[hue_img_idx] < mad_threshold:
+                print(hue_mad_regions[hue_img_idx])
+                print()
+                masks_hue[:,:,hue_img_idx][reg_idxs] = 255
+            else:
+                print('Skipped ', str(hue_mad_regions[hue_img_idx]))
+                print()
     
     # Find contours:
         f_upscale = cv.resize(np.copy(frame), dsize=None, fx=f_scale, fy=f_scale, interpolation= cv.INTER_LINEAR) # Upscale for display!
