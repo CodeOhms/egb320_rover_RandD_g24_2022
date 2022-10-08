@@ -76,7 +76,7 @@ def PoC(capture, cam_res, imgs_dir):
 
     num_classes = 6 # Wall and floor, sample, obstacle, rock, lander
 
-    sat_mids = [0, 0, 0.65, 0.85, 0.95, 1.0]
+    sat_mids = [0, 0, 0.65, 0.45, 0.95, 1.0]
     # Hues (in degrees): 180, 220, 2, 110, 207
     hue_mids = [
         3.14159265358979323846, 3.83972435438752506923, 0.03490658503988659154,
@@ -101,6 +101,33 @@ def PoC(capture, cam_res, imgs_dir):
     regions_properties = [16, 8, 0, 0] # n_cells_x, n_cells_y, size_x, size_y
     regions_shape = [f_width//regions_properties[0], f_height//regions_properties[1]]
     regions_properties[2:] = regions_shape
+
+    # Setup display windows:
+    cv.namedWindow("Frame")
+    cv.namedWindow("Wall mask")
+    cv.namedWindow("Floor mask")
+    cv.namedWindow("Sample mask")
+    cv.namedWindow("Obstacle mask")
+    cv.namedWindow("Rock mask")
+    cv.namedWindow("Lander mask")
+    cv.namedWindow("Sample conv. hulls")
+    cv.namedWindow("Obstacle conv. hulls")
+    cv.namedWindow("Rock conv. hulls")
+    cv.namedWindow("Lander conv. hulls")
+    cv.namedWindow("Debug message")
+    cv.moveWindow("Frame", 0, 0)
+    cv.moveWindow("Wall mask", f_width, 0)
+    cv.moveWindow("Floor mask", f_width*2, 0)
+    cv.moveWindow("Sample mask", f_width*3, 0)
+    cv.moveWindow("Obstacle mask", f_width*4, 0)
+    cv.moveWindow("Rock mask", f_width*5, 0)
+    cv.moveWindow("Lander mask", f_width*6, 0)
+    win_y_offset = 32
+    cv.moveWindow("Sample conv. hulls", 0, f_height+win_y_offset)
+    cv.moveWindow("Obstacle conv. hulls", f_width*f_scale, f_height+win_y_offset)
+    cv.moveWindow("Rock conv. hulls", f_width*f_scale*2, f_height+win_y_offset)
+    cv.moveWindow("Lander conv. hulls", f_width*f_scale*3, f_height+win_y_offset)
+    cv.moveWindow("Debug message", 0, f_height*(1+f_scale)+win_y_offset*2)
 
     while(loop):
         new_frame_time = time.time()
@@ -201,6 +228,8 @@ def PoC(capture, cam_res, imgs_dir):
 
     # Display results:
         cv.imshow("Frame", frame)
+        cv.imshow("Wall mask", masks_hue[:,:,0])
+        cv.imshow("Floor mask", masks_hue[:,:,1])
         cv.imshow("Sample mask", masks_hue[:,:,2])
         cv.imshow("Obstacle mask", masks_hue[:,:,3])
         cv.imshow("Rock mask", masks_hue[:,:,4])
