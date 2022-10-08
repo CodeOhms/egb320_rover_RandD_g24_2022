@@ -11,8 +11,8 @@ import cv2 as cv
 from scipy.spatial.distance import cdist
 
 def superpx_slic_trans(img, num_regions=40):
-    # slic = Slic(num_components=40, compactness=1, min_size_factor=0) # Supposedly gets FPS increase, but I don't see any...
-    slic = Slic(num_components=num_regions, compactness=10)
+    slic = Slic(num_components=num_regions, compactness=10, min_size_factor=0) # Supposedly gets FPS increase, but I don't see any...
+    # slic = Slic(num_components=num_regions, compactness=10)
     segments = slic.iterate(img) # Cluster Map
     return segments
 
@@ -30,7 +30,7 @@ def grid_superpx_trans(img, regions_props):
 
 def gen_superpx_img(img, regions_props):
     return superpx_slic_trans(img, regions_props)
-    # return grid_superpx_trans(img, regions_props)
+    # return grid_superpx_trans(img, regions_props) # Slower without multithreading...
 
 def get_region1d(img, superpx_img_indicies):
     return img[superpx_img_indicies]
@@ -74,11 +74,14 @@ def on_close():
 def PoC(capture, cam_res, imgs_dir):
     global loop
 
-    num_classes = 5 # Wall and floor, sample, obstacle, rock
+    num_classes = 6 # Wall and floor, sample, obstacle, rock, lander
 
-    sat_mids = [0, 0, 0.65, 0.73, 1.0]
+    sat_mids = [0, 0, 0.65, 0.85, 0.95, 1.0]
     # Hues (in degrees): 180, 220, 2, 110, 207
-    hue_mids = [3.14159265358979323846, 3.83972435438752506923, 0.03490658503988659154, 1.65806278939461309808, 3.56047167406843233692] # Wall and floor, sample, obstacle, rock
+    hue_mids = [
+        3.14159265358979323846, 3.83972435438752506923, 0.03490658503988659154,
+        1.65806278939461309808, 3.56047167406843233692, 1.04719755119659774615
+    ] # Wall and floor, sample, obstacle, rock, lander
     sat_hue_cnums = ne.evaluate('sat_mids*exp(complex(0,hue_mids))')
     sat_hue_vecs = np.array([[hsm_comp.real, hsm_comp.imag] for hsm_comp in sat_hue_cnums])
 
@@ -103,13 +106,9 @@ def PoC(capture, cam_res, imgs_dir):
     frame_masked_objs = np.zeros(masks_shape)
 
     num_regions = 25
-    regions_properties = [16, 8, 0, 0]
+    regions_properties = [16, 8, 0, 0] # n_cells_x, n_cells_y, size_x, size_y
     regions_shape = [f_width//regions_properties[0], f_height//regions_properties[1]]
     regions_properties[2:] = regions_shape
-    # n_cells_x = 16
-    # n_cells_y = 8
-    # size_x = img.shape[1]//n_cells_x
-    # size_y = img.shape[0]//n_cells_y
 
     while(loop):
         new_frame_time = time.time()
@@ -131,9 +130,12 @@ def PoC(capture, cam_res, imgs_dir):
         frame_vecs = np.array([[[comp.real,comp.imag] for comp in row] for row in frame_comp[:]])
 
         # Hue MAD from given hue:
-        hue_mads_imgs_and_decrs = np.array([gen_discriptor_img(superpx_img, frame_vecs, hue_sat_manhattan, descr_func_args=[np.array([ sat_hue_vecs[i] ])], descr_dims=1, img_dtype=np.float32)
-            for i in range(num_classes)
-        ])
+        hue_mads_imgs_and_decrs = np.array(
+            [gen_discriptor_img(superpx_img, frame_vecs, hue_sat_manhattan,
+                                descr_func_args=[np.array([ sat_hue_vecs[i] ])], descr_dims=1, img_dtype=np.float32)
+                                for i in range(num_classes)
+            ]
+        )
         hue_mad_imgs = hue_mads_imgs_and_decrs[:,0]
         hue_mad_descrs = hue_mads_imgs_and_decrs[:,1]
 
@@ -182,8 +184,11 @@ def PoC(capture, cam_res, imgs_dir):
             for hull in img_hulls:
                 # try: # may not be any detected contours!
                 moments.append(cv.moments(hull))
-                cx = int(moments[-1]['m10']/moments[-1]['m00'])
-                cy = int(moments[-1]['m01']/moments[-1]['m00'])
+                try: # In case of division by zero:
+                    cx = int(moments[-1]['m10']/moments[-1]['m00'])
+                    cy = int(moments[-1]['m01']/moments[-1]['m00'])
+                except:
+                    pass
                 scaled_cen = (cx*f_scale,cy*f_scale)
                 contours_imgs[ih_i] = cv.circle(contours_imgs[ih_i], scaled_cen, radius=1, color=(0, 0, 255), thickness=-1)
                 cen_x[ih_i].append(cx)
@@ -196,12 +201,14 @@ def PoC(capture, cam_res, imgs_dir):
 
     # Display results:
         cv.imshow("Frame", frame)
-        cv.imshow("Sample hue mask", masks_hue[:,:,2])
-        cv.imshow("Obstacle hue mask", masks_hue[:,:,3])
-        cv.imshow("Rock hue mask", masks_hue[:,:,4])
+        cv.imshow("Sample mask", masks_hue[:,:,2])
+        cv.imshow("Obstacle mask", masks_hue[:,:,3])
+        cv.imshow("Rock mask", masks_hue[:,:,4])
+        cv.imshow("Lander mask", masks_hue[:,:,5])
         cv.imshow("Sample conv. hulls", contours_imgs[2])
         cv.imshow("Obstacle conv. hulls", contours_imgs[3])
         cv.imshow("Rock conv. hulls", contours_imgs[4])
+        cv.imshow("Lander conv. hulls", contours_imgs[5])
         key = cv.waitKey(1) & 0xFF
         #if the `q` key was pressed, break from the loop
         if key == ord("q"):
