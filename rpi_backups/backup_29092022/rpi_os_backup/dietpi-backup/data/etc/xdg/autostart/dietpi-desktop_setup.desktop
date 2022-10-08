@@ -1,0 +1,8 @@
+[Desktop Entry]
+Version=1.0
+Name=DietPi-Desktop_setup
+Type=Application
+Comment=Adds default desktop entries and configs to the users desktop
+NoDisplay=true
+Exec=/var/lib/dietpi/dietpi-software/installed/desktop/dietpi-desktop_setup.sh
+Icon=/var/lib/dietpi/dietpi-software/installed/desktop/icons/dietpi-icon.png

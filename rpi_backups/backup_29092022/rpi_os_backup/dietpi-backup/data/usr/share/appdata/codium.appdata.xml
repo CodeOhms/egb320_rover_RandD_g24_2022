@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+	<id>codium.desktop</id>
+	<metadata_license>MIT</metadata_license>
+	<project_license>MIT</project_license>
+	<name>VSCodium</name>
+	<url type="homepage">https://vscodium.com</url>
+	<summary>VSCodium. Code editing. Redefined.</summary>
+	<description>
+		<p>VSCodium is a new choice of tool that combines the simplicity of a code editor with what developers need for the core edit-build-debug cycle. See https://github.com/VSCodium/vscodium#download-install for installation instructions and FAQ.</p>
+	</description>
+	<screenshots>
+		<screenshot type="default">
+			<image>https://vscodium.com/img/vscodium.png</image>
+			<caption>Editing TypeScript and searching for extensions</caption>
+		</screenshot>
+	</screenshots>
+</component>

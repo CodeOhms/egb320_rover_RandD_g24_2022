@@ -1,0 +1,9 @@
+[Unit]
+Description=Start entropy gathering daemon (rngd)
+Documentation=man:rngd(8)
+
+[Service]
+ExecStart=/usr/sbin/rngd -f
+
+[Install]
+WantedBy=multi-user.target

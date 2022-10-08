@@ -1,0 +1,29 @@
+# You can use "dietpi-drive_manager" to setup mounts.
+# NB: It overwrites and re-creates physical drive mount entries on use.
+#----------------------------------------------------------------
+# NETWORK
+#----------------------------------------------------------------
+
+
+#----------------------------------------------------------------
+# TMPFS
+#----------------------------------------------------------------
+tmpfs /tmp tmpfs size=1024M,noatime,lazytime,nodev,nosuid,mode=1777
+tmpfs /var/log tmpfs size=50M,noatime,lazytime,nodev,nosuid,mode=1777
+
+#----------------------------------------------------------------
+# MISC: ecryptfs, vboxsf, glusterfs, bind, Btrfs subvolume mounts
+#----------------------------------------------------------------
+
+
+#----------------------------------------------------------------
+# SWAP SPACE
+#----------------------------------------------------------------
+
+
+#----------------------------------------------------------------
+# PHYSICAL DRIVES
+#----------------------------------------------------------------
+PARTUUID=c26b8af2-02 / ext4 noatime,lazytime,rw 0 1
+PARTUUID=c26b8af2-01 /boot vfat noatime,lazytime,rw 0 2
+/var/swap none swap sw

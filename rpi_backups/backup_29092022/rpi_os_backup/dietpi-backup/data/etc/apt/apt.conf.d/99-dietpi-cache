@@ -1,0 +1,5 @@
+# Please use "dietpi-config" > "Advanded Options" > "APT" to edit these settings.
+Dir::Cache "/tmp/apt";
+Dir::Cache::archives "/var/cache/apt/archives";
+Dir::Cache::pkgcache "";
+Dir::Cache::srcpkgcache "";
