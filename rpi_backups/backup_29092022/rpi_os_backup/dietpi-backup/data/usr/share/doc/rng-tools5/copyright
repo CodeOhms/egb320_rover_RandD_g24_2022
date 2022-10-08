@@ -1,0 +1,82 @@
+Format: http://dep.debian.net/deps/dep5
+Upstream-Name: rng-tools
+Source: https://git.kernel.org/cgit/utils/kernel/rng-tools/rng-tools.git/
+
+Files: *
+Copyright: 2001 Philipp Rumpf
+           Jeff Garzik <jgarzik@pobox.com>
+           2004 Henrique de Moraes Holschuh <hmh@debian.org>
+           2011-2014 Intel Corporation
+           2009 Red Hat, Inc.
+License: GPL-2+
+
+Files: configure.ac
+Copyright: 2004 Henrique de Moraes Holschuh <hmh@debian.org> / 2001 Philipp Rumpf
+License: GPL-2+
+
+Files: exits.h
+       rngtest.1.in
+       rngtest.c
+       stats.c
+       stats.h
+Copyright: 2004 Henrique de Moraes Holschuh <hmh@debian.org>
+License: GPL-2+
+
+Files: fips.c
+       fips.h
+       rngd.c
+       rngd.h
+       rngd_entsource.c
+       rngd_entsource.h
+       rngd_linux.c
+       rngd_linux.h
+Copyright: 2001 Philipp Rumpf
+License: GPL-2+
+
+Files: rdrand_asm.S
+       rngd_rdrand.c
+Copyright: 2011-2014 Intel Corporation
+License: GPL-2+
+
+Files: rngd.8.in
+Copyright: 2001 Jeff Garzik -- jgarzik@pobox.com
+License: GPL-2+
+
+Files: util.c
+Copyright: 2009 Red Hat, Inc.
+License: GPL
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ On Debian systems, the complete text of the GNU General
+ Public License can be found in "/usr/share/common-licenses/GPL".
+
+Files: COPYING
+Copyright: 1989, 1991 Free Software Foundation, Inc.
+License: GPL-itself
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+License: GPL-2+
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335  USA
+ .
+ On Debian systems, the complete text of the GNU General
+ Public License version 2 can be found in "/usr/share/common-licenses/GPL-2".

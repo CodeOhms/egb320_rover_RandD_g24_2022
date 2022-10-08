@@ -1,0 +1,57 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: lightdm
+Upstream-Contact: William Jon McCann <mccann@jhu.edu>
+  Peter de Ridder <peter@xfce.org>
+  Simon Steinbeiß <simon@xfce.org>
+Upstream-Source: https://github.com/the-cavalry/light-locker/
+
+Files: debian/*
+Copyright: © 2013 Yves-Alexis Perez <corsac@debian.org>
+License: GPL-2
+
+Files: src/gs-content.c
+ src/gs-content.h
+ src/gs-debug.c
+ src/gs-debug.h
+ src/gs-grab-x11.c
+ src/gs-grab.h
+ src/gs-listener-dbus.c
+ src/gs-listener-dbus.h
+ src/gs-listener-x11.c
+ src/gs-listener-x11.h
+ src/gs-manager.c
+ src/gs-manager.h
+ src/gs-monitor.c
+ src/gs-monitor.h
+ src/gs-window.h
+ src/light-locker-command.c
+ src/light-locker.c
+ src/light-locker.h
+ src/preview.c
+Copyright: 2004-2005, William Jon McCann <mccann@jhu.edu>
+  2004-2006, William Jon McCann <mccann@jhu.edu>
+  2004-2008, William Jon McCann <mccann@jhu.edu>
+  2005, William Jon McCann <mccann@jhu.edu>
+License: GPL-2+
+
+Files: src/gs-window-x11.c
+Copyright: 2004-2008, William Jon McCann <mccann@jhu.edu>
+  2008-2011, Red Hat, Inc.
+License: GPL-2+
+
+Files: src/gs-bus.h
+Copyright: 2010, Saleem Abdulrasool <compnerd@compnerd.org>
+License: GPL-2+
+
+Files: data/*.1
+Copyright: 2007 Sven Arvidsson <sa@whiz.se>
+  2014 Peter de Ridder <peter@xfce.org>
+License: GPL-2+
+
+License: GPL-2
+ On Debian systems, the complete text of the GNU General Public License version
+ 2 can be found in `/usr/share/common-licenses/GPL-2'.
+
+License: GPL-2+
+ On Debian systems, the complete text of the GNU General Public License can be
+ found in `/usr/share/common-licenses/GPL'.
