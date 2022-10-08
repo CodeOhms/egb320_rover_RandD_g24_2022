@@ -94,16 +94,8 @@ def PoC(capture, cam_res, imgs_dir):
     prev_frame_time = 0
     new_frame_time = 0
     
-    dbug_img_canvas = np.zeros((100,512,3),np.uint8)
-    dbug_img = np.zeros((100,512,3),np.uint8)
     font = cv.FONT_HERSHEY_SIMPLEX
 
-    empty_mask = np.zeros((frame.shape[:2]), dtype=np.uint8)
-    masks_shape = np.concatenate((frame.shape[:2], np.array([num_classes])))
-    masks_hue = np.zeros(masks_shape, dtype=np.uint8)
-    masks_sat = np.zeros(masks_shape, dtype=np.uint8)
-    masks_objs = np.zeros(masks_shape, dtype=np.uint8)
-    frame_masked_objs = np.zeros(masks_shape)
 
     num_regions = 25
     regions_properties = [16, 8, 0, 0] # n_cells_x, n_cells_y, size_x, size_y
@@ -112,6 +104,16 @@ def PoC(capture, cam_res, imgs_dir):
 
     while(loop):
         new_frame_time = time.time()
+
+    # Setup display images:
+        masks_shape = np.concatenate((frame.shape[:2], np.array([num_classes])))
+        masks_hue = np.zeros(masks_shape, dtype=np.uint8)
+        masks_sat = np.zeros(masks_shape, dtype=np.uint8)
+        masks_objs = np.zeros(masks_shape, dtype=np.uint8)
+        frame_masked_objs = np.zeros(masks_shape)
+        dbug_img = np.zeros((100,512,3),np.uint8)
+        f_upscale = cv.resize(copy.deepcopy(frame), dsize=None, fx=f_scale, fy=f_scale, interpolation= cv.INTER_LINEAR) # Upscale for display!
+        contours_imgs = [copy.deepcopy(f_upscale) for x in range(num_classes)]
         
     # Capture frame from camera:
         frame = grab_frame(capture, cam_res)
@@ -160,8 +162,6 @@ def PoC(capture, cam_res, imgs_dir):
             #     print()
     
     # Find contours:
-        f_upscale = cv.resize(copy.deepcopy(frame), dsize=None, fx=f_scale, fy=f_scale, interpolation= cv.INTER_LINEAR) # Upscale for display!
-        contours_imgs = [copy.deepcopy(f_upscale) for x in range(num_classes)]
         hulls_lists = [[ ] for x in range(num_classes)]
         contours = [ ]
         for m_i in range(num_classes):
@@ -218,10 +218,6 @@ def PoC(capture, cam_res, imgs_dir):
         cv.putText(dbug_img, "FPS "+str(fps), (0,25), font, 1, (255,255,255), 2, cv.LINE_AA)
         cv.imshow("Debug message", dbug_img)
         prev_frame_time = new_frame_time
-        dbug_img = copy.deepcopy(dbug_img_canvas)
-        masks_hue[:,:,0] = copy.deepcopy(empty_mask)
-        masks_hue[:,:,1] = copy.deepcopy(empty_mask)
-        masks_hue[:,:,2] = copy.deepcopy(empty_mask)
 
 def init_camera(camera):
 # https://picamera.readthedocs.io/en/release-1.13/recipes1.html#capturing-consistent-images
