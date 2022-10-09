@@ -1,5 +1,3 @@
-import os
-from inspect import getsourcefile
 import time
 import copy
 import numpy as np
@@ -262,12 +260,6 @@ def init_camera(camera):
     camera.awb_gains = g
 
 if __name__ == "__main__":
-    # Set the working directory to the root folder of the R&D git repo:
-    script_dir = os.path.dirname(getsourcefile(lambda:0))
-    os.chdir(script_dir)
-    os.chdir('../../../')
-    imgs_dir = 'segmentation/superpixels/superpx_PoC/'
-
     # initialize the video stream and allow the cammera sensor to warmup
     # Vertical res must be multiple of 16, and horizontal a multiple of 32
     cam_res = (64, 32)
