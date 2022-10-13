@@ -60,15 +60,6 @@ def gen_discriptor_img(superpx_img, img, descr_func, img_dtype=None, descr_func_
 
     return (im_descriptors, descriptors)
 
-# def enclosing_shape(shape=None):
-#     if shape is None:
-#         shape = 'rectangle'
-#     else if shape is 'circle':
-
-#     else if shape is 'rectangle':
-        
-
-
 def grab_frame(capture, res):
     frame = capture.read()
     return frame
