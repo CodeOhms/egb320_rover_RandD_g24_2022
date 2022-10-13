@@ -30,7 +30,8 @@ save_coefficients(mtx, dist, "calibration_charuco.yml")
 
 # Load coefficients
 mtx, dist = load_coefficients('calibration_charuco.yml')
-original = cv2.imread(IMAGES_DIR+'calib_img_2022-10-09_0019.png')
+original = cv2.imread(IMAGES_DIR+'calib_img_2022-10-09_1003.png')
+# original = cv2.imread('test_img_2.jpg')
 h, w = original.shape[:2]
 newcameramtx, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, (w,h), 0, (w,h))
 mapx, mapy = cv2.initUndistortRectifyMap(mtx, dist, None, newcameramtx, (w,h), 5)

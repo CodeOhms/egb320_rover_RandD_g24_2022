@@ -60,17 +60,55 @@ def gen_discriptor_img(superpx_img, img, descr_func, img_dtype=None, descr_func_
 
     return (im_descriptors, descriptors)
 
+# def enclosing_shape(shape=None):
+#     if shape is None:
+#         shape = 'rectangle'
+#     else if shape is 'circle':
+
+#     else if shape is 'rectangle':
+        
+
+
 def grab_frame(capture, res):
     frame = capture.read()
     return frame
+
+def load_coefficients(path):
+    '''Loads camera matrix and distortion coefficients.'''
+    # FILE_STORAGE_READ
+    cv_file = cv.FileStorage(path, cv.FILE_STORAGE_READ)
+
+    # note we also have to specify the type to retrieve other wise we only get a
+    # FileNode object back instead of a matrix
+    camera_matrix = cv_file.getNode('K').mat()
+    dist_matrix = cv_file.getNode('D').mat()
+
+    cv_file.release()
+    return [camera_matrix, dist_matrix]
 
 loop = True
 def on_close():
     global loop
     loop = False
 
-def PoC(capture, cam_res, imgs_dir):
+def PoC(capture, cam_res):
     global loop
+
+    frame = grab_frame(capture, cam_res)
+    f_scale = 4
+    f_height, f_width = frame.shape[:2]
+
+    fov = [62.2, 48.8] # degrees
+    focal_len = 3.04e-1 # cm
+    px_height = 1.12e-4 # cm
+    res_ver_scale = 2464/f_height
+
+    obj_actual_heights = [None, None, 4.3, 15, 7, 4.5] # cm. Wall and floor, sample, obstacle, rock, lander
+
+    # Setup camera undistort coefficients:
+    mtx, distortion = load_coefficients('calibration_charuco.yml')
+    newcameramtx, dist_roi = cv.getOptimalNewCameraMatrix(mtx, distortion, (f_width,f_height), 0, (f_width,f_height))
+    mapx, mapy = cv.initUndistortRectifyMap(mtx, distortion, None, newcameramtx, (f_width,f_height), 5)
 
     num_classes = 6 # Wall and floor, sample, obstacle, rock, lander
 
@@ -83,17 +121,10 @@ def PoC(capture, cam_res, imgs_dir):
     sat_hue_cnums = ne.evaluate('sat_mids*exp(complex(0,hue_mids))')
     sat_hue_vecs = np.array([[hsm_comp.real, hsm_comp.imag] for hsm_comp in sat_hue_cnums])
 
-    frame = grab_frame(capture, cam_res)
-    f_scale = 4
-
-    f_height = frame.shape[0]
-    f_width = frame.shape[1]
-
     prev_frame_time = 0
     new_frame_time = 0
     
     font = cv.FONT_HERSHEY_SIMPLEX
-
 
     num_regions = 25
     regions_properties = [16, 8, 0, 0] # n_cells_x, n_cells_y, size_x, size_y
@@ -129,6 +160,14 @@ def PoC(capture, cam_res, imgs_dir):
 
     while(loop):
         new_frame_time = time.time()
+        
+    # Capture frame from camera:
+        frame = grab_frame(capture, cam_res)
+        # frame_dist = grab_frame(capture, (3240,2464))
+        # frame_dist = cv.resize(frame_dist, cam_res)
+
+    # # Undistort frame:
+        # frame = cv.remap(frame_dist, mapx, mapy, cv.INTER_LINEAR)
 
     # Setup display images:
         masks_shape = np.concatenate((frame.shape[:2], np.array([num_classes])))
@@ -139,9 +178,6 @@ def PoC(capture, cam_res, imgs_dir):
         dbug_img = np.zeros((100,512,3),np.uint8)
         f_upscale = cv.resize(copy.deepcopy(frame), dsize=None, fx=f_scale, fy=f_scale, interpolation= cv.INTER_LINEAR) # Upscale for display!
         contours_imgs = [copy.deepcopy(f_upscale) for x in range(num_classes)]
-        
-    # Capture frame from camera:
-        frame = grab_frame(capture, cam_res)
 
     # Create superpixel image:
         superpx_img = gen_superpx_img(frame, num_regions)
@@ -168,61 +204,68 @@ def PoC(capture, cam_res, imgs_dir):
 
     # Select descriptors to mask objects:
         # mad_threshold = 0.15
-        mad_threshold = 1.0
+        # mad_threshold = 1.0
         hue_mad_regions = np.zeros((1,3))
         hue_mad_labels = hue_mad_descrs
         for i_reg, reg_label in enumerate(np.unique(superpx_img)):
             hue_mad_regions = np.array([hmad_lab[i_reg] for hmad_lab in hue_mad_labels])
             reg_idxs = superpx_img == reg_label
-
             hue_img_idx = np.argmin(hue_mad_regions)
-            # print('region index', str(i_reg))
-            # print()
-            if hue_mad_regions[hue_img_idx] < mad_threshold:
-                # print(hue_mad_regions[hue_img_idx])
-                # print()
-                masks_hue[:,:,hue_img_idx][reg_idxs] = 255
-            # else:
-            #     print('Skipped ', str(hue_mad_regions[hue_img_idx]))
-            #     print()
+            # if hue_mad_regions[hue_img_idx] < mad_threshold:
+            #     masks_hue[:,:,hue_img_idx][reg_idxs] = 255
+            masks_hue[:,:,hue_img_idx][reg_idxs] = 255
     
-    # Find contours:
-        hulls_lists = [[ ] for x in range(num_classes)]
+    # Find contours and bounding boxes:
+        # hulls_lists = [[ ] for x in range(num_classes)]
         contours = [ ]
-        for m_i in range(num_classes):
-            conts, _ = cv.findContours(masks_hue[:,:,m_i], cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+        cnts_poly = [[ ] for x in range(num_classes)]
+        bound_boxes = [[ ] for x in range(num_classes)]
+        for cl_i in range(num_classes):
+            conts, _ = cv.findContours(masks_hue[:,:,cl_i], cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
             contours.append(conts)
-        # Find the convex hull object for each contour, and draw hulls:
+        # Find the bounding box for each contour, and draw them:
             for cnt in conts:
-                hulls = cv.convexHull(cnt)
-                hulls_lists[m_i].append(hulls)
-            cv.drawContours(contours_imgs[m_i], np.multiply(f_scale, hulls_lists[m_i]), -1, (250,0,255), 2) # magenta
+                c_poly = cv.approxPolyDP(cnt, 3, True)
+                cnts_poly[cl_i].append(c_poly)
+                bbox = cv.boundingRect(c_poly)
+                bound_boxes[cl_i].append(bbox)
+                bbox = np.multiply(f_scale, bbox)
+                cv.rectangle(
+                    contours_imgs[cl_i], (int(bbox[0]), int(bbox[1])),
+                    (int(bbox[0]+bbox[2]), int(bbox[1]+bbox[3])), (250,0,255), 2
+                )
     
     # Correct for distortions:
 
     # Estimate bearing:
-        fov = [62.2, 48.8]
-        moments = [ ]
         cen_x = [[ ] for x in range(num_classes)]
         bearings = [[ ] for x in range(num_classes)]
-        for ih_i, img_hulls in enumerate(hulls_lists):
-            for hull in img_hulls:
-                # try: # may not be any detected contours!
-                moments.append(cv.moments(hull))
-                try: # In case of division by zero:
-                    cx = int(moments[-1]['m10']/moments[-1]['m00'])
-                    cy = int(moments[-1]['m01']/moments[-1]['m00'])
-                except:
-                    pass
+        depths = [[ ] for x in range(num_classes)]
+        for cl_i, bboxs in enumerate(bound_boxes):
+            for bound_box in bboxs:
+                cx = bound_box[0] + bound_box[2]//2 # x + width/2
+                cy = bound_box[1] + bound_box[3]//2 # y + height/2
                 scaled_cen = (cx*f_scale,cy*f_scale)
-                contours_imgs[ih_i] = cv.circle(contours_imgs[ih_i], scaled_cen, radius=1, color=(0, 0, 255), thickness=-1)
-                cen_x[ih_i].append(cx)
+                contours_imgs[cl_i] = cv.circle(contours_imgs[cl_i], scaled_cen, radius=2, color=(0, 0, 255), thickness=-1)
+                cen_x[cl_i].append(cx)
                 bearing = (cx-f_width/2)/f_width*fov[0]
-                bearings[ih_i].append(bearing)
-                cv.putText(contours_imgs[ih_i], "B: "+str(bearing), scaled_cen, font, 0.3, (255,255,255), 1, cv.LINE_AA)
+                bearings[cl_i].append(bearing)
+                # cv.putText(contours_imgs[cl_i], "B: "+str(bearing), scaled_cen, font, 0.3, (255,255,255), 1, cv.LINE_AA)
 
-    # Estimate distance:
-        
+                if obj_actual_heights[cl_i] != None:
+                    obj_px_height = bound_box[3]
+                    obj_height = obj_px_height*px_height*res_ver_scale
+                    obj_distance = obj_actual_heights[cl_i]*focal_len/obj_height
+                    depths[cl_i].append(obj_distance)
+
+                    cv.putText(
+                        contours_imgs[cl_i], "B: "+str(bearing),
+                        scaled_cen, font, 0.3, (255,255,255), 1, cv.LINE_AA
+                    )
+                    cv.putText(
+                        contours_imgs[cl_i], "D: "+str(obj_distance),
+                        (scaled_cen[0],scaled_cen[1]+8), font, 0.3, (255,255,255), 1, cv.LINE_AA
+                    )
 
     # Display results:
         cv.imshow("Frame", frame)
@@ -267,7 +310,7 @@ if __name__ == "__main__":
     print("Camera warming up...")
     init_camera(video_stream.camera)
     
-    PoC(video_stream, cam_res, imgs_dir)
+    PoC(video_stream, cam_res)
     
     cv.destroyAllWindows()
     video_stream.stop()
