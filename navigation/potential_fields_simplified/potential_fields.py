@@ -40,29 +40,39 @@ def goal_potential_field(x_array, bearings, intensity, intensity_max):
     Piecewise triangular function.
     '''
     
-    bearing = bearings[0]
-    
+    g_pf_total = np.zeros_like(x_array)
     m = intensity_max/x_array.max() # Gradients
-    c = (intensity - m*bearing, intensity + m*bearing)
-    return np.piecewise(x_array, [x_array < bearing, x_array >= bearing], [lambda x: m*x+c[0], lambda x: -m*x+c[1]])
+    for i, bear in enumerate(bearings):
+        c = (intensity[i] - m*bear, intensity[i] + m*bear)
+        pw = np.piecewise(x_array, [x_array < bear, x_array >= bear], [lambda x: m*x+c[0], lambda x: -m*x+c[1]])
+        # Clip results below zero and above intensity maximum:
+        pw[pw<0] = 0
+        pw[pw>intensity_max] = intensity_max
+        g_pf_total = g_pf_total + pw            
+    return g_pf_total
 
 def hazard_potential_field(x_array, bearings, intensity, intensity_max):
     '''
     Piecewise square function.
     '''
     
-    b_min = bearings[0]
-    b_max = bearings[1]
-    return np.where(((b_min <= x_array) & (x_array <= b_max)), intensity, 0)
-    
+    h_pf_total = np.zeros_like(x_array)
+    for i, bear_range in enumerate(bearings):
+        b_min = bear_range[0]
+        b_max = bear_range[1]
+        pw = np.where(((b_min <= x_array) & (x_array <= b_max)), intensity[i], 0)
+        # Clip results below zero and above intensity maximum:
+        pw[pw<0] = 0
+        pw[pw>intensity_max] = intensity_max
+        h_pf_total = h_pf_total + pw
+    return h_pf_total    
 
 if __name__ == '__main__':
     goal_pf = PF(goal_potential_field)
     haz_pf = PF(hazard_potential_field)
     
-    
-    goal_pf.gen_potential_field((0.0,), 0.6)
-    haz_pf.gen_potential_field((-80, -20), 0.8)
+    goal_pf.gen_potential_field((-90.0, 90), (0.6, 0.5))
+    haz_pf.gen_potential_field(((-80, -20), (-10, 10), (60, 110)), (0.8, 0.2, 0.8))
     
     motor_heading_pf = PF.heading_field(goal_pf, haz_pf)
     
